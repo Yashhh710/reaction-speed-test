@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>BMW F1 Simulator</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap');
+
+        html,
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: fixed;
+            font-family: 'Orbitron', sans-serif;
+            background-color: #000;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        .scene {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            perspective: 1200px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            overflow: hidden;
+        }
+
+        /* --- IMMERSIVE ENVIRONMENT --- */
+        #track-bg {
+            position: absolute;
+            top: -10%; left: -10%; width: 120%; height: 120%;
+            background-image: url('../img/1.jpg');
+            background-color: #111;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            z-index: 0;
+            will-change: transform, filter;
+        }
+
+        /* Speed lines effect */
+        #speed-lines {
+            position: absolute; top:0; left:0; width: 100%; height: 100%; z-index: 2;
+            background: repeating-linear-gradient(90deg, transparent, transparent 10%, rgba(255,255,255,0.08) 10.5%, transparent 11%);
+            opacity: 0; pointer-events: none;
+            animation: speed 0.15s infinite linear;
+        }
+        @keyframes speed { 0% { background-position: 0 0; } 100% { background-position: 300px 0; } }
+
+        /* Anime Style Filter Overlay */
+        .anime-filter {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(0deg, rgba(0, 0, 40, 0.6) 0%, rgba(200, 0, 100, 0.2) 100%);
+            backdrop-filter: saturate(1.8) contrast(1.3);
+            z-index: 3; pointer-events: none;
+        }
+
+        /* --- START SEQUENCE UPGRADES --- */
+        #start-sequence-btn {
+            position: absolute; top: 40vh; left: 50%; transform: translate(-50%, -50%);
+            width: 35vw; height: 12vh;
+            font-size: 5vmin; font-family: 'Orbitron', sans-serif;
+            font-weight: 900; background: #f00; color: #fff;
+            border: 0.8vmin solid #fff; cursor: pointer; z-index: 600; 
+            transition: 0.3s; clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);
+            text-shadow: 0 0 2vmin #fff; box-shadow: 0 0 5vmin rgba(255, 0, 0, 0.8);
+            animation: start-pulse 1.5s infinite alternate; animation-play-state: running;
+        }
+        #start-sequence-btn:hover { background: #fff; color: #f00; transform: translate(-50%, -50%) scale(1.1); box-shadow: 0 0 8vmin #fff; }
+
+        @keyframes start-pulse { 
+            0% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 0 3vmin rgba(255, 0, 0, 0.5); }
+            100% { transform: translate(-50%, -50%) scale(1.05); box-shadow: 0 0 10vmin rgba(255, 0, 0, 1); }
+        }
+
+        #play-btn-bottom {
+            position: absolute; bottom: 8vh; left: 5vw;
+            width: 25vw; height: 8vh; font-size: 3.5vmin; font-family: 'Orbitron', sans-serif;
+            font-weight: 900; background: rgba(0, 255, 255, 0.3); color: #0ff;
+            border: 0.4vmin solid #0ff; cursor: pointer; z-index: 600; 
+            transition: 0.3s; clip-path: polygon(15% 0, 100% 0, 85% 100%, 0 100%);
+            backdrop-filter: blur(10px); animation: play-pulse 2s infinite alternate;
+        }
+        #play-btn-bottom:hover { background: #0ff; color: #000; box-shadow: 0 0 4vmin #0ff; transform: scale(1.1); }
+
+        @keyframes play-pulse {
+            0% { opacity: 0.7; box-shadow: 0 0 1vmin rgba(0, 255, 255, 0.3); }
+            100% { opacity: 1; box-shadow: 0 0 5vmin rgba(0, 255, 255, 0.8); }
+        }
+
+        /* --- F1 STYLE EXIT BUTTON --- */
+        .f1-back-btn {
+            position: absolute;
+            top: 2.5vmin;
+            right: 2.5vmin; /* Move to right to avoid overlap */
+            background: #000;
+            border: 0.3vmin solid var(--accent-cyan, #0ff);
+            color: var(--accent-cyan, #0ff);
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            font-size: 1.8vmin;
+            padding: 1vmin 3.5vmin;
+            cursor: pointer;
+            z-index: 500;
+            text-transform: uppercase;
+            clip-path: polygon(15% 0, 100% 0, 85% 100%, 0 100%);
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 1vmin;
+            box-shadow: 0 0.5vmin 1.5vmin rgba(0, 255, 255, 0.2);
+        }
+
+        .f1-back-btn:hover {
+            background: var(--accent-cyan, #0ff);
+            color: #000;
+            box-shadow: 0 0 3vmin rgba(0, 255, 255, 0.6);
+            transform: skewX(-5deg) scale(1.05);
+        }
+
+        .f1-back-btn::before {
+            content: "⇦";
+            font-size: 2.2vmin;
+        }
+
+        .gantry-container {
+            position: absolute; top: 7vh; left: 50%; transform: translateX(-50%) perspective(1000px) rotateX(10deg);
+            display: flex; gap: 0.8vmin; padding: 0.5vmin 1vmin; background: #1a1b24;
+            border: 0.3vmin solid #444; border-radius: 0.5vmin; box-shadow: 0 2vmin 5vmin rgba(0,0,0,0.9), inset 0 0 2vmin rgba(255,255,255,0.05);
+            z-index: 100; transform-style: preserve-3d;
+        }
+        .gantry-container::after {
+            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0,255,255,0.1), transparent);
+            background-size: 200% 100%; animation: gantry-scan 3s infinite linear;
+            pointer-events: none; border-radius: inherit;
+        }
+        @keyframes gantry-scan { from { background-position: -100% 0; } to { background-position: 100% 0; } }
+
+        .gantry-box {
+            width: 7vmin; height: 15vmin; background: #000; border: 0.3vmin solid #222;
+            border-radius: 0.5vmin; display: flex; flex-direction: column; align-items: center;
+            justify-content: space-evenly; transform: translateZ(2vmin);
+            box-shadow: 0.5vmin 0.5vmin 0 #111, -0.5vmin 0.5vmin 0 #111;
+        }
+        .gantry-light {
+            width: 4.5vmin; height: 4.5vmin; border-radius: 50%; background: #200;
+            box-shadow: inset 0 0.5vmin 0.5vmin rgba(0,0,0,0.8), 0 0 0.5vmin #000;
+            transition: all 0.05s; position: relative;
+        }
+        .gantry-light::before {
+            content: ""; position: absolute; inset: 0; border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.1), transparent);
+        }
+        .gantry-light.on {
+            background: #ff0022; box-shadow: 0 0 4vmin #ff0022, 0 0 8vmin #ff0022, inset 0 0 1.5vmin #fff;
+            animation: light-pulse 0.5s infinite alternate;
+        }
+        .gantry-light.go {
+            background: #00ff44; box-shadow: 0 0 6vmin #00ff44, 0 0 12vmin #00ff44, inset 0 0 2vmin #fff;
+            animation: light-pulse-go 0.3s infinite alternate;
+        }
+        @keyframes light-pulse { from { opacity: 1; } to { opacity: 0.8; } }
+        @keyframes light-pulse-go { from { transform: scale(1); box-shadow: 0 0 6vmin #00ff44; } to { transform: scale(1.1); box-shadow: 0 0 15vmin #00ff44; } }
+
+        /* --- STEERING WHEEL --- */
+        #steering-wheel {
+            position: absolute; bottom: -8vmin;
+            width: 85vmin; height: 55vmin;
+            background: #2a2a30; border: 0.8vmin solid #000;
+            border-radius: 10vmin 10vmin 6vmin 6vmin;
+            z-index: 10;
+            box-shadow: 0 -1vmin 1vmin rgba(0,0,0,0.8), inset 0 1vmin 0.5vmin rgba(255,255,255,0.1);
+            display: flex; flex-direction: column; align-items: center;
+            transform-origin: center calc(100% - 15vmin);
+            transform: scale(0.45);
+            will-change: transform;
+        }
+
+        #steering-wheel::before {
+            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: inherit;
+            background-image: linear-gradient(135deg, #333 25%, transparent 25%), linear-gradient(225deg, #333 25%, transparent 25%), linear-gradient(45deg, #333 25%, transparent 25%), linear-gradient(315deg, #333 25%, #222 25%);
+            background-position: 0.4vmin 0, 0.4vmin 0, 0, 0;
+            background-size: 0.8vmin 0.8vmin;
+            background-repeat: repeat;
+            opacity: 0.4; pointer-events: none;
+        }
+
+        .handle {
+            position: absolute; top: 4vmin; bottom: 2vmin; width: 10vmin;
+            background: #111; border-radius: 5vmin; border: 0.8vmin solid #000;
+            box-shadow: inset -1vmin 0 2vmin rgba(0,0,0,0.8), inset 1vmin 0 2vmin rgba(255,255,255,0.05); z-index: -1;
+        }
+        .handle-left { left: -5vmin; box-shadow: inset -1vmin 0 2vmin #000; }
+        .handle-right { right: -5vmin; box-shadow: inset 1vmin 0 2vmin #000; }
+
+        .top-shift-bar {
+            position: absolute; top: 1.5vmin;
+            display: flex; gap: 0.5vmin; background: #000; padding: 0.4vmin 1.2vmin;
+            border-radius: 2vmin; border: 0.2vmin solid #333; z-index: 5;
+        }
+        .top-shift-bar::before {
+            content: "DRS K2"; position: absolute; top: -1.8vmin; left: 50%; transform: translateX(-50%);
+            color: #fff; font-size: 1vmin; font-weight: 900; opacity: 0.8;
+        }
+        .shift-dot { width: 1.2vmin; height: 1vmin; border-radius: 50%; background: #222; opacity: 0.5; }
+        .shift-dot.on { opacity: 1; box-shadow: 0 0 1.5vmin currentColor; }
+
+        .rpm-leds {
+            position: absolute; top: 4.2vmin; display: flex; gap: 0.8vmin;
+            background: #111; padding: 0.6vmin 2.5vmin; border-radius: 1vmin; border: 0.3vmin solid #222;
+        }
+        .led { width: 1.8vmin; height: 1.2vmin; border-radius: 0.4vmin; background: #222; opacity: 0.2; transition: 0.02s; }
+        .led.on { opacity: 1; }
+
+        .center-screen {
+            position: absolute; top: 8vmin; width: 38vmin; height: 22vmin;
+            background: #000; border: 0.8vmin solid #111; border-radius: 1vmin;
+            box-shadow: inset 0 0 3vmin rgba(0, 255, 255, 0.05);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            position: relative; overflow: hidden;
+        }
+        #tele-wave { position: absolute; top: 0; left: 0; width: 200%; height: 100%; opacity: 0.15; pointer-events: none; }
+        .telemetry-bar {
+            position: absolute; width: 1.5vmin; height: 80%; background: #222; border: 0.1vmin solid #444; border-radius: 0.2vmin;
+            display: flex; flex-direction: column; justify-content: flex-end; z-index: 5;
+        }
+        .tele-fill { width: 100%; height: 60%; background: #0df; box-shadow: 0 0 1vmin #0df; transition: height 0.5s; }
+        .tele-label { font-size: 0.8vmin; color: #fff; position: absolute; bottom: -2vmin; left: 0; width: 100%; text-align: center; }
+        .bar-left { left: 2vmin; top: 10%; }
+        .bar-right { right: 2vmin; top: 10%; }
+
+        .side-btn {
+            position: absolute; width: 6vmin; height: 6vmin; border-radius: 50%;
+            border: 0.4vmin solid #000; background: #222; display: flex; justify-content: center; align-items: center;
+            font-size: 1.5vmin; font-weight: 900; cursor: pointer; color: #fff;
+            box-shadow: 0 0.4vmin 0 #000, 0 0.8vmin 1vmin rgba(0,0,0,0.5);
+        }
+        .btn-n { top: 7vmin; left: 4vmin; background: #ec2; color: #000; border-color: #870; }
+        .btn-p { top: 7vmin; right: 4vmin; background: #f40; border-color: #820; }
+        
+        .side-small-btn {
+            position: absolute; width: 3.5vmin; height: 3.5vmin; border-radius: 50%;
+            border: 0.3vmin solid #000; display: flex; justify-content: center; align-items: center;
+            font-size: 0.8vmin; font-weight: 900; color: #fff; text-transform: uppercase;
+        }
+        .btn-drink { top: 15vmin; left: 8vmin; background: #fff; color: #000; }
+        .btn-radio { top: 18vmin; left: 11vmin; background: #f00; }
+
+        .dials-container {
+            position: absolute; bottom: 3vmin; width: 90%;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .rotary {
+            width: 10vmin; height: 10vmin; border-radius: 50%; border: 0.5vmin solid #000;
+            box-shadow: 0 0.6vmin 1vmin rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; position: relative;
+        }
+        .dial-label { position: absolute; top: -2.5vmin; font-size: 1vmin; color: #aaa; text-transform: uppercase; }
+        
+        .dial-knob {
+            width: 6vmin; height: 6vmin; border-radius: 50%; background: #111; border: 0.3vmin solid #222;
+            position: relative;
+        }
+        .dial-knob::after {
+            content: ""; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+            width: 0.8vmin; height: 2.5vmin; background: #fff; border-radius: 0.2vmin;
+        }
+
+        .bmw-logo-center {
+            width: 15vmin; height: 15vmin; border-radius: 50%; background: #000;
+            position: relative; box-shadow: 0 1vmin 1.5vmin rgba(0,0,0,0.8), inset 0 0 1vmin rgba(255,255,255,0.2);
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden; border: 0.6vmin solid #aaa;
+            background: linear-gradient(145deg, #eee, #999);
+        }
+        .bmw-real-img { width: 95%; height: 95%; object-fit: contain; }
+
+        /* UI Guides */
+        .guide {
+            position: absolute; top: 2vmin; left: 2vmin;
+            color: #fff; text-shadow: 0 0.2vmin 0.4vmin #000;
+            font-size: 1.5vmin; z-index: 100;
+            background: rgba(0, 0, 0, 0.7); padding: 1.5vmin; border-radius: 0.8vmin;
+            border-left: 0.4vmin solid #0ff; line-height: 1.5;
+        }
+        #init-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 500;
+            display: flex; justify-content: center; align-items: center;
+            color: #0ff; text-align: center; cursor: pointer;
+            font-size: 4vmin; flex-direction: column;
+        }
+        #init-overlay span { font-size: 2vmin; color: #aaa; margin-top: 1vmin; }
+
+        /* --- CINEMATIC HUD --- */
+        #hud-master {
+            position: absolute; bottom: 3vmin; right: 3vmin;
+            width: 30vmin; height: auto;
+            z-index: 200; pointer-events: none;
+            display: flex; flex-direction: column; align-items: center;
+            font-family: 'Orbitron', sans-serif;
+            background: rgba(0,0,0,0.6); padding: 2vmin; border-radius: 2vmin;
+            border: 0.3vmin solid rgba(0, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        #global-reaction-box {
+            position: absolute; bottom: 38vmin; right: 3vmin; width: 30vmin; height: 8vmin;
+            background: rgba(0,0,0,0.8); border: 0.4vmin solid #f00; border-radius: 1vmin;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 500; opacity: 0; transform: translateY(2vmin); transition: 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            box-shadow: 0 0 3vmin rgba(255,0,0,0.3);
+            backdrop-filter: blur(10px);
+        }
+        #global-reaction-box.active { opacity: 1; transform: translateY(0); }
+        .reaction-label { font-size: 1vmin; color: #f00; text-transform: uppercase; font-weight: 900; }
+        .reaction-value { font-size: 3.5vmin; color: #fff; font-weight: 900; text-shadow: 0 0 1.5vmin #f00; }
+
+        .hud-gear-box {
+            width: 12vmin; height: 12vmin; border: 0.5vmin solid #0ff;
+            background: rgba(0, 255, 255, 0.1);
+            display: flex; justify-content: center; align-items: center;
+            font-size: 8vmin; font-weight: 900; color: #0ff;
+            margin-bottom: 1vmin;
+            clip-path: polygon(0 0, 100% 0, 100% 80%, 80% 100%, 0 100%);
+        }
+        .hud-speed-group {
+            display: flex; align-items: baseline; gap: 1vmin;
+            text-shadow: 0 0 2vmin rgba(0, 255, 255, 0.5);
+        }
+        #hud-speed { font-size: 7vmin; font-weight: 900; color: #fff; line-height: 1; }
+        .hud-unit { font-size: 2vmin; font-weight: 700; color: #0ff; opacity: 0.8; }
+        
+        .hud-rpm-outer {
+            width: 100%; height: 1.5vmin; background: rgba(255,255,255,0.1); border-radius: 0.3vmin;
+            margin-top: 1.5vmin; position: relative; overflow: hidden;
+        }
+        #hud-rpm-bar {
+            height: 100%; width: 0%;
+            background: linear-gradient(90deg, #0f0, #ff0, #f00);
+            box-shadow: 0 0 2vmin rgba(255, 0, 0, 0.5);
+            transition: width 0.05s linear;
+        }
+
+        /* --- MINI-MAP RADAR --- */
+        #radar-container {
+            position: absolute; top: 3vmin; right: 3vmin;
+            width: 25vmin; height: 15vmin;
+            background: rgba(0,255,255,0.05); border: 0.2vmin solid rgba(0,255,255,0.3);
+            border-radius: 1vmin; z-index: 200; pointer-events: none;
+            backdrop-filter: blur(8px); overflow: hidden;
+        }
+        #radar-container::before {
+            content: "SECTOR 1 - RADAR"; position: absolute; top: 0.5vmin; left: 1vmin;
+            font-size: 0.8vmin; color: #0ff; opacity: 0.7;
+        }
+        .radar-track {
+            position: absolute; inset: 2vmin; border: 0.2vmin dashed rgba(0,255,255,0.1); border-radius: 1vmin;
+        }
+        #radar-dot {
+            position: absolute; width: 1vmin; height: 1vmin; background: #f00; border-radius: 50%;
+            box-shadow: 0 0 1.5vmin #f00; transform: translate(-50%, -50%);
+            top: 50%; left: 50%;
+            will-change: left, top;
+        }
+        /* --- CUSTOM CROSSHAIR --- */
+        #custom-cursor {
+            position: absolute; width: 4vmin; height: 4vmin; border: 0.2vmin solid #0ff;
+            border-radius: 50%; pointer-events: none; z-index: 1000;
+            display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 0 1vmin #0ff, inset 0 0 0.5vmin #0ff;
+            mix-blend-mode: screen; transform: translate(-50%, -50%);
+            opacity: 0; transition: opacity 0.3s;
+        }
+        #custom-cursor::before, #custom-cursor::after {
+            content: ""; position: absolute; background: #0ff;
+        }
+        #custom-cursor::before { width: 150%; height: 0.2vmin; }
+        #custom-cursor::after { height: 150%; width: 0.2vmin; }
+
+        .f1-back-btn {
+            position: absolute; top: 2.5vmin; right: 2.5vmin;
+            margin-top: 17vmin;
+            padding: 1vmin 3vmin;
+            background: rgba(0, 0, 0, 0.85);
+            border: 0.3vmin solid #0ff;
+            border-radius: 0.5vmin;
+            color: #0ff;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            font-size: 1.8vmin;
+            text-transform: uppercase;
+            cursor: pointer;
+            z-index: 500;
+            box-shadow: 0 0 2vmin rgba(0, 255, 255, 0.4);
+            transform: skewX(-15deg);
+            transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+            display: flex;
+            align-items: center;
+            gap: 1vmin;
+        }
+
+        .f1-back-btn:hover {
+            background: #0ff;
+            color: #000;
+            box-shadow: 0 0 4vmin #0ff;
+            transform: skewX(-15deg) scale(1.05);
+        }
+
+        .f1-back-btn:active {
+            transform: skewX(-15deg) scale(0.95);
+            box-shadow: 0 0 1vmin rgba(0, 255, 255, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="scene">
+        <button class="f1-back-btn" onclick="location.href='../../index.html'">Exit</button>
+        <div id="custom-cursor"></div>
+        <!-- Sound Effects -->
+        <audio id="snd-engine" src="https://assets.mixkit.co/active_storage/sfx/2552/2552-preview.mp3" loop></audio>
+
+        <div id="init-overlay">
+            CLICK TO START IGNITION
+            <span>(Requires click to enable Audio & Voice)</span>
+        </div>
+
+        <button id="start-sequence-btn" style="display:none;">START RACE</button>
+        <button id="play-btn-bottom" style="display:none;">PLAY</button>
+
+        <div id="radar-container">
+            <div class="radar-track"></div>
+            <div id="radar-dot"></div>
+        </div>
+
+        <div id="global-reaction-box">
+            <div class="reaction-label">TIME ATTACK</div>
+            <div class="reaction-value" id="global-reaction-score">0.000s</div>
+        </div>
+
+        <div id="hud-master">
+            <div class="hud-gear-box" id="hud-gear">N</div>
+            <div class="hud-speed-group">
+                <span id="hud-speed">0</span>
+                <span class="hud-unit">RPM</span>
+            </div>
+            <div class="hud-rpm-outer">
+                <div id="hud-rpm-bar"></div>
+            </div>
+        </div>
+
+        <div class="gantry-container" id="gantry">
+            <div class="gantry-box" id="col-0"><div class="gantry-light"></div><div class="gantry-light"></div></div>
+            <div class="gantry-box" id="col-1"><div class="gantry-light"></div><div class="gantry-light"></div></div>
+            <div class="gantry-box" id="col-2"><div class="gantry-light"></div><div class="gantry-light"></div></div>
+            <div class="gantry-box" id="col-3"><div class="gantry-light"></div><div class="gantry-light"></div></div>
+            <div class="gantry-box" id="col-4"><div class="gantry-light"></div><div class="gantry-light"></div></div>
+        </div>
+
+        <!-- Gameplay Environment -->
+        <div id="track-bg"></div>
+        <div class="anime-filter"></div>
+        <div id="speed-lines"></div>
+
+        <div class="guide">
+            <b>[ W ]</b> Accelerate<br>
+            <b>[ S ]</b> Brake<br>
+            <b>[ A / D ]</b> Steer<br><br>
+            <span style="color:#0f0;">🎤 Voice Active: "Go", "Stop", "Left", "Right"</span>
+        </div>
+
+        <div id="steering-wheel">
+            <div class="handle handle-left"></div>
+            <div class="handle handle-right"></div>
+            
+            <div class="top-shift-bar" id="shiftDots"></div>
+            
+            <div class="side-btn btn-n">N</div>
+            <div class="side-btn btn-p">P</div>
+            
+            <div class="side-small-btn btn-drink">DRINK</div>
+            <div class="side-small-btn btn-radio">RADIO</div>
+
+            <div class="rpm-leds" id="rpmBar">
+                <div class="led" style="background: #0f0;"></div><div class="led" style="background: #0f0;"></div><div class="led" style="background: #0f0;"></div><div class="led" style="background: #0f0;"></div><div class="led" style="background: #0f0;"></div>
+                <div class="led" style="background: #f00;"></div><div class="led" style="background: #f00;"></div><div class="led" style="background: #f00;"></div><div class="led" style="background: #f00;"></div><div class="led" style="background: #f00;"></div>
+                <div class="led" style="background: #00f;"></div><div class="led" style="background: #00f;"></div><div class="led" style="background: #00f;"></div><div class="led" style="background: #00f;"></div><div class="led" style="background: #00f;"></div>
+            </div>
+
+            <div class="center-screen">
+                <canvas id="tele-wave"></canvas>
+                <div class="telemetry-bar bar-left"><div class="tele-fill" style="height: 80%; background: #f0f; box-shadow: 0 0 1vmin #f0f;"></div><div class="tele-label">TIRE</div></div>
+                <div class="telemetry-bar bar-right"><div class="tele-fill" style="height: 40%; background: #fa0; box-shadow: 0 0 1vmin #fa0;"></div><div class="tele-label">FUEL</div></div>
+
+                <div class="screen-top" id="lcd-text">BMW PERFORMANCE</div>
+                <div class="screen-speed" id="screen-speed">0</div>
+                <div class="screen-gear" id="screen-gear">N</div>
+            </div>
+
+            <div class="dials-container">
+                <div class="rotary" style="background: conic-gradient(#fa0, #e60, #fa0);"><div class="dial-label">MIX</div><div class="dial-knob" style="transform: rotate(20deg);"></div></div>
+                <div class="rotary" style="background: conic-gradient(#0e0, #090, #0e0);"><div class="dial-label">TYRE</div><div class="dial-knob" style="transform: rotate(-40deg);"></div></div>
+                
+                <div class="bmw-logo-center">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/BMW.svg/1200px-BMW.svg.png" class="bmw-real-img" alt="BMW">
+                </div>
+                
+                <div class="rotary" style="background: conic-gradient(#0df, #08c, #0df);"><div class="dial-label">FUEL</div><div class="dial-knob" style="transform: rotate(80deg);"></div></div>
+                <div class="rotary" style="background: conic-gradient(#f02, #a00, #f02);"><div class="dial-label">ENG</div><div class="dial-knob" style="transform: rotate(-10deg);"></div></div>
+            </div>
+        </div>
+        <div id="click-capture" style="position:absolute; inset:0; z-index:50;"></div>
+
+    </div>
+
+    <script>
+        // --- PREVENT BROWSER ZOOM ---
+        document.addEventListener('keydown', function (e) {
+            if (e.ctrlKey && (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '0')) {
+                e.preventDefault();
+            }
+        });
+        document.addEventListener('wheel', function (e) {
+            if (e.ctrlKey) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // DOM Elements
+        const wheel = document.getElementById('steering-wheel');
+        const bg = document.getElementById('track-bg');
+        const speedDisplay = document.getElementById('screen-speed');
+        const gearDisplay = document.getElementById('screen-gear');
+        const screenTop = document.getElementById('lcd-text');
+        const speedLines = document.getElementById('speed-lines');
+        const leds = document.querySelectorAll('.led');
+        const engineAudio = document.getElementById('snd-engine');
+        
+        // --- AUDIO ENGINE ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSignalSound(type) {
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            if (type === 'beep') {
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(440, audioCtx.currentTime); 
+                gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.15);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.15);
+            } else if (type === 'ready') {
+                oscillator.type = 'triangle';
+                oscillator.frequency.setValueAtTime(660, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.3);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.3);
+            } else if (type === 'go') {
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(1000, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(0.25, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.8);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.8);
+            } else if (type === 'fail') {
+                oscillator.type = 'sawtooth';
+                oscillator.frequency.setValueAtTime(50, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.6);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.6);
+            }
+        }
+        const startBtn = document.getElementById('start-sequence-btn');
+        const playBtnBottom = document.getElementById('play-btn-bottom');
+        const clickCapture = document.getElementById('click-capture');
+        const shiftDotsParent = document.getElementById('shiftDots');
+        
+        const hudSpeed = document.getElementById('hud-speed');
+        const hudRPM = document.getElementById('hud-rpm-bar');
+        const hudGear = document.getElementById('hud-gear');
+        const globalReactionBox = document.getElementById('global-reaction-box');
+        const globalReactionScore = document.getElementById('global-reaction-score');
+        const radarDot = document.getElementById('radar-dot');
+        const customCursor = document.getElementById('custom-cursor');
+
+        let radarTargetX = 50;
+        let radarTargetY = 50;
+        let radarCurrentX = 50;
+        let radarCurrentY = 50;
+
+        let cursorTargetX = 0;
+        let cursorTargetY = 0;
+        let cursorCurrentX = 0;
+        let cursorCurrentY = 0;
+
+        // Create shift dots
+        for(let i=0; i<15; i++) {
+            let dot = document.createElement('div');
+            dot.className = 'shift-dot';
+            if(i < 5) dot.style.color = '#f00';
+            else if(i < 10) dot.style.color = '#f0f';
+            else dot.style.color = '#00f';
+            shiftDotsParent.appendChild(dot);
+        }
+        const shiftDots = document.querySelectorAll('.shift-dot');
+
+        let speed = 0;
+        let targetSpeed = 0;
+        const MAX_SPEED = 340;
+        let currentRotation = 0;
+        let targetRotation = 0;
+        let currentDip = 0;
+        let targetDip = 0;
+        let gameStarted = false;
+
+        // Reaction Minigame State
+        let raceState = 'idle'; // idle, sequence, ready, racing, failed
+        let lightsInterval = null;
+        let lightsOutTime = 0;
+        let reactionTime = 0;
+
+        // Input State
+        const keys = { w: false, a: false, s: false, d: false };
+
+        document.addEventListener('keydown', (e) => {
+            const k = e.key.toLowerCase();
+            if (keys.hasOwnProperty(k)) {
+                if (k === 'w' && !keys.w) triggerReaction(); // Fire precision timing check instantly upon pressing 'w'
+                keys[k] = true;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            const k = e.key.toLowerCase();
+            if (keys.hasOwnProperty(k)) keys[k] = false;
+        });
+
+        // Bootstrap Click (Audio Policies)
+        document.getElementById('init-overlay').addEventListener('click', () => {
+            document.getElementById('init-overlay').style.display = 'none';
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            engineAudio.volume = 0.2;
+            engineAudio.play();
+            gameStarted = true;
+            playBtnBottom.style.display = 'block'; // Show bottom play button
+            initVoiceRecognition();
+            playSignalSound('ready');
+        });
+
+        playBtnBottom.addEventListener('click', () => {
+            playBtnBottom.style.display = 'none';
+            startSequence();
+        });
+
+        startBtn.addEventListener('click', () => {
+            startBtn.style.display = 'none';
+            startSequence();
+        });
+
+        clickCapture.addEventListener('mousedown', (e) => {
+            if (gameStarted) triggerReaction();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!gameStarted) return;
+            radarTargetX = (e.clientX / window.innerWidth) * 100;
+            radarTargetY = (e.clientY / window.innerHeight) * 100;
+            
+            customCursor.style.opacity = 1;
+            cursorTargetX = e.clientX;
+            cursorTargetY = e.clientY;
+        });
+
+        function startSequence() {
+            raceState = 'sequence';
+            reactionTime = 0;
+            targetSpeed = 0;
+            speed = 0;
+            let count = 0;
+            screenTop.innerText = "WAIT TO LAUNCH";
+            screenTop.style.color = "#ffae00";
+            
+            // Clear lights
+            for(let i=0; i<5; i++) {
+                document.getElementById('col-'+i).querySelectorAll('.gantry-light').forEach(l => l.classList.remove('on'));
+            }
+
+            // Power up lights
+            lightsInterval = setInterval(() => {
+                if (count < 5) {
+                    document.getElementById('col-'+count).querySelectorAll('.gantry-light').forEach(l => l.classList.add('on'));
+                    playSignalSound('beep');
+                    count++;
+                } else {
+                    clearInterval(lightsInterval);
+                    raceState = 'ready'; // All 5 lit
+                    const randomDelay = 500 + Math.random() * 2500;
+                    setTimeout(() => {
+                        if(raceState === 'ready') {
+                            raceState = 'racing';
+                            // LIGHTS GO GREEN
+                            for(let i=0; i<5; i++) {
+                                document.getElementById('col-'+i).querySelectorAll('.gantry-light').forEach(l => {
+                                    l.classList.remove('on');
+                                    l.classList.add('go');
+                                });
+                            }
+                            playSignalSound('go');
+                            // Auto clear green lights after 3 seconds
+                            setTimeout(() => {
+                                for(let i=0; i<5; i++) {
+                                    document.getElementById('col-'+i).querySelectorAll('.gantry-light').forEach(l => l.classList.remove('go'));
+                                }
+                            }, 3000);
+
+                            lightsOutTime = performance.now();
+                            screenTop.innerText = "GO GO GO!";
+                            screenTop.style.color = "#0f0";
+                        }
+                    }, randomDelay);
+                }
+            }, 1000); // 1 sec per light column
+        }
+
+        // Fired whenever W is pressed or Voice command 'go' is shouted
+        function triggerReaction() {
+            if (raceState === 'sequence' || raceState === 'ready') {
+                // False start penalty
+                clearInterval(lightsInterval);
+                raceState = 'failed';
+                playSignalSound('fail');
+                screenTop.innerText = "FALSE START!";
+                screenTop.style.color = "#f00";
+                startBtn.style.display = 'block';
+                startBtn.innerText = "RESTART";
+                for(let i=0; i<5; i++) document.getElementById('col-'+i).querySelectorAll('.gantry-light').forEach(l => l.classList.remove('on'));
+            } else if (raceState === 'racing' && reactionTime === 0) {
+                // Perfect hit!
+                reactionTime = performance.now() - lightsOutTime;
+                const finalTime = (reactionTime / 1000).toFixed(3);
+                screenTop.innerText = `${finalTime}s`;
+                screenTop.style.color = "#0ff";
+                globalReactionScore.innerText = `${finalTime}s`;
+                globalReactionBox.classList.add('active');
+                startBtn.style.display = 'block';
+                startBtn.innerText = "PLAY AGAIN";
+            }
+        }
+
+        // --- MAIN GAME LOOP ---
+        function animate() {
+            if (!gameStarted) { requestAnimationFrame(animate); return; }
+
+            // Logic: Reaction Timer Visuals
+            if (raceState === 'racing' && reactionTime === 0) {
+                const liveTime = (performance.now() - lightsOutTime) / 1000;
+                screenTop.innerText = liveTime.toFixed(3) + "s";
+                screenTop.style.color = "#0f0";
+            }
+
+            // Logic: Accelerate / Brake
+            if (keys.w && raceState !== 'failed') { // Cannot accelerate if failed
+                targetSpeed = Math.min(targetSpeed + 3, MAX_SPEED);
+                targetDip = Math.max(targetDip - 1, -10); // Lean back slightly on accel
+            } else {
+                targetSpeed = Math.max(targetSpeed - 0.5, 0); // Natural drag
+            }
+
+            if (keys.s) {
+                targetSpeed = Math.max(targetSpeed - 6, 0); // Harsh brake
+                targetDip = 20; // Dive forward under braking
+            } else if (!keys.w || raceState === 'failed') {
+                targetDip *= 0.8; // settle back 
+            }
+
+            // Logic: Steering Parallax
+            if (keys.a) { targetRotation = -60; }
+            else if (keys.d) { targetRotation = 60; }
+            else { targetRotation = 0; }
+
+            // Easing functions for buttery smoothness
+            speed += (targetSpeed - speed) * 0.05;
+            currentRotation += (targetRotation - currentRotation) * 0.15;
+            currentDip += (targetDip - currentDip) * 0.2;
+
+            // Apply Transforms
+            wheel.style.transform = `scale(0.5) rotateZ(${currentRotation}deg) translateY(${currentDip}px)`;
+            
+            // Cockpit shake effect at high speeds
+            let shakeX = speed > 200 ? (Math.random() - 0.5) * (speed/100) : 0;
+            let shakeY = speed > 200 ? (Math.random() - 0.5) * (speed/100) : 0;
+            
+            bg.style.transform = `scale(1.1) translate(${shakeX}px, ${shakeY}px)`;
+
+            // Screen Data
+            const intSpeed = Math.floor(speed);
+            const engineRPM = Math.floor(speed * 44); // Fake RPM scaling for realism
+            speedDisplay.innerText = intSpeed;
+            hudSpeed.innerText = engineRPM;
+            
+            let gear = "N";
+            if (speed === 0) gear = "N";
+            else if (speed < 60) gear = "1";
+            else if (speed < 120) gear = "2";
+            else if (speed < 180) gear = "3";
+            else if (speed < 230) gear = "4";
+            else if (speed < 280) gear = "5";
+            else if (speed < 310) gear = "6";
+            else gear = "7";
+            
+            gearDisplay.innerText = gear;
+            hudGear.innerText = gear;
+
+            // HUD RPM Bar
+            hudRPM.style.width = (speed / MAX_SPEED) * 100 + "%";
+
+            // Smooth Radar (Lerp)
+            radarCurrentX += (radarTargetX - radarCurrentX) * 0.15;
+            radarCurrentY += (radarTargetY - radarCurrentY) * 0.15;
+            radarDot.style.left = radarCurrentX + "%";
+            radarDot.style.top = radarCurrentY + "%";
+
+            // Smooth Cursor (Lerp)
+            cursorCurrentX += (cursorTargetX - cursorCurrentX) * 0.1;
+            cursorCurrentY += (cursorTargetY - cursorCurrentY) * 0.1;
+            customCursor.style.left = cursorCurrentX + "px";
+            customCursor.style.top = cursorCurrentY + "px";
+
+            // Visual Effects (Motion Blur, Lines, RPM LEDs)
+            if (speed > 5) {
+                engineAudio.playbackRate = 0.8 + (speed / MAX_SPEED) * 1.5;
+                engineAudio.volume = Math.min(0.2 + (speed / MAX_SPEED) * 0.8, 1);
+            } else {
+                engineAudio.playbackRate = 0.8;
+                engineAudio.volume = 0.2;
+            }
+
+            if (speed > 100) {
+                const blurAmount = (speed - 100) / 40;
+                bg.style.filter = `blur(${blurAmount}px) brightness(0.8) contrast(1.2)`;
+                speedLines.style.opacity = (speed / MAX_SPEED) * 0.7;
+            } else {
+                bg.style.filter = "none";
+                speedLines.style.opacity = 0;
+            }
+
+            // RPM LEDs & Dots
+            const activeCount = Math.floor((speed / MAX_SPEED) * 15);
+            leds.forEach((led, i) => {
+                led.classList.toggle('on', i < activeCount);
+                if(i < activeCount) led.style.boxShadow = `0 0 1.5vmin ${led.style.background}`;
+                else led.style.boxShadow = 'none';
+            });
+            shiftDots.forEach((dot, i) => dot.classList.toggle('on', i < activeCount));
+
+            // Apply Transforms
+            wheel.style.transform = `scale(0.45) rotateZ(${currentRotation}deg) translateY(${currentDip}px)`;
+
+            // Telemetry Wave Animation
+            const canvas = document.getElementById('tele-wave');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 400; canvas.height = 200;
+            ctx.clearRect(0, 0, 400, 200);
+            ctx.beginPath();
+            ctx.strokeStyle = '#0ff'; ctx.lineWidth = 2;
+            for(let i=0; i<400; i++) {
+                const y = 100 + Math.sin(i * 0.05 + performance.now() * 0.01) * 30;
+                if(i === 0) ctx.moveTo(i, y); else ctx.lineTo(i, y);
+            }
+            ctx.stroke();
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+
+        // --- VOICE RECOGNITION (Web Speech API) ---
+        function initVoiceRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) return;
+
+            const recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = false;
+
+            recognition.onresult = (event) => {
+                const last = event.results.length - 1;
+                const cmd = event.results[last][0].transcript.trim().toLowerCase();
+                
+                if (cmd.includes('accelerate') || cmd.includes('go') || cmd.includes('push')) {
+                    triggerReaction(); // Trigger reaction time on voice command!
+                    keys.w = true; keys.s = false;
+                    setTimeout(() => keys.w = false, 3000); 
+                } else if (cmd.includes('brake') || cmd.includes('stop')) {
+                    keys.w = false; keys.s = true;
+                    setTimeout(() => keys.s = false, 2000);
+                } else if (cmd.includes('left')) {
+                    keys.a = true;
+                    setTimeout(() => keys.a = false, 1500);
+                } else if (cmd.includes('right')) {
+                    keys.d = true;
+                    setTimeout(() => keys.d = false, 1500);
+                }
+            };
+            
+            // Auto restart if it crashes/stops
+            recognition.onend = () => { recognition.start(); };
+            
+            recognition.start();
+        }
+
+    </script>
+</body>
+
+</html>

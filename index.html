@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Reaction Games</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Outfit:wght@300;400;700;900&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #002b4d;
+            --bg-darker: #001a2e;
+            --accent-cyan: #00f2ff;
+            --accent-orange: #ff7700;
+            --accent-red: #ff3c3c;
+            --card-bg: #004070;
+            --card-border: #005a9c;
+            --text-light: #ffffff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: fixed;
+        }
+
+        body {
+            background-color: var(--bg-darker);
+            background-image:
+                radial-gradient(circle at 50% 50%, #003b66 0%, #001a2e 100%);
+            display: flex;
+            color: var(--text-light);
+            -webkit-text-size-adjust: 100%;
+        }
+
+        /* --- SIDEBAR (LEFT) --- */
+        .sidebar {
+            width: 8vw;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border-right: 2px solid var(--accent-cyan);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 5vh;
+            gap: 2vh;
+            z-index: 20;
+        }
+
+        .event-node {
+            width: 5.5vw;
+            height: 5.5vw;
+            background: #000;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            cursor: pointer;
+            transition: 0.3s;
+            overflow: hidden;
+        }
+
+        .event-node.active {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 1.5vw var(--accent-cyan);
+        }
+
+        .event-node img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .event-node .node-timer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            font-size: 0.7vw;
+            text-align: center;
+            color: #fff;
+        }
+
+        /* --- MAIN VIEWPORT --- */
+        .viewport {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* --- TOP HUD --- */
+        .top-hud {
+            height: 10vh;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            padding: 0 2vw;
+            gap: 2vw;
+            background: linear-gradient(180deg, rgba(0, 0, 0, 0.5), transparent);
+        }
+
+        .hud-item {
+            background: #000;
+            border: 2px solid var(--accent-cyan);
+            padding: 0.5vh 1.5vw;
+            display: flex;
+            align-items: center;
+            gap: 1vw;
+            clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%);
+        }
+
+        .hud-label {
+            color: var(--accent-red);
+            font-size: 0.8vw;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+
+        .hud-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2vw;
+            font-weight: 900;
+        }
+
+        .progress-container {
+            flex: 1;
+            max-width: 25vw;
+            height: 4vh;
+            background: #000;
+            border: 2px solid #555;
+            position: relative;
+            clip-path: polygon(3% 0, 100% 0, 97% 100%, 0 100%);
+            display: flex;
+            align-items: center;
+        }
+
+        .progress-fill {
+            width: 68%;
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-cyan), #0088ff);
+        }
+
+        .progress-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            font-size: 0.8vw;
+            font-weight: 900;
+            z-index: 2;
+        }
+
+        .currency-hud {
+            display: flex;
+            gap: 1vw;
+            margin-left: auto;
+        }
+
+        .currency {
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid var(--accent-cyan);
+            padding: 0.5vh 1.2vw;
+            display: flex;
+            align-items: center;
+            gap: 0.5vw;
+            border-radius: 0.5vh;
+        }
+
+        /* --- HERO SPLASH --- */
+        .hero-splash {
+            flex: 0.7; /* Significantly compact the header section */
+            display: flex;
+            padding: 1vh 4vw;
+            align-items: center;
+            gap: 2vw;
+            position: relative;
+            overflow: hidden;
+            /* This provides the clean crop */
+        }
+
+        .hero-image-large {
+            height: 85vh;
+            position: absolute;
+            top: -8vh;
+            left: 3vw;
+            z-index: 10;
+            filter: drop-shadow(0 0 5vw rgba(0, 242, 255, 0.4));
+            transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+            pointer-events: none;
+        }
+
+        .hero-image-large:hover {
+            transform: scale(1.05);
+            /* Simplified hover since not centered */
+        }
+
+        .event-info {
+            position: absolute;
+            right: 5vw;
+            top: 10vh; /* Lowered slightly for the more compact height */
+            text-align: right;
+            z-index: 2;
+        }
+
+        .event-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 4vw;
+            font-weight: 900;
+            line-height: 1;
+            text-shadow: 0 0 2vw var(--accent-cyan);
+        }
+
+        .event-subtitle {
+            font-size: 1.2vw;
+            color: var(--accent-cyan);
+            margin-bottom: 2vh;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .event-btn {
+            background: var(--accent-orange);
+            color: #000;
+            margin-top: 1vh;
+            padding: 1vh 2vw;
+            font-size: 1.2vw;
+            font-weight: 900;
+            border: none;
+            cursor: pointer;
+            clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);
+            transition: 0.3s;
+        }
+
+        .event-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 2vw var(--accent-orange);
+        }
+
+        /* --- MISSION SECTIONS --- */
+        .mission-grids-container {
+            flex: 1.5;
+            position: relative;
+            background: rgba(0, 15, 30, 0.6);
+            backdrop-filter: blur(10px);
+            border-top: 2px solid rgba(0, 242, 255, 0.2);
+            overflow: visible; /* Prevent car clipping */
+        }
+
+        .mission-section {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2vh 4vw;
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.9) translateY(20px);
+            transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+            overflow: visible; /* Let the car pop out */
+        }
+
+        .mission-section.active {
+            opacity: 1;
+            pointer-events: all;
+            transform: scale(1) translateY(0);
+        }
+
+        .mission-card {
+            width: 45vw; /* Wide 'Rectangular' landscape card */
+            height: 35vh;
+            background: linear-gradient(135deg, #1a1b24, #000);
+            border: 4px solid var(--card-border);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 0 4vw;
+            transition: 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+            text-decoration: none;
+            color: inherit;
+            box-shadow: 0 4vh 10vh rgba(0,0,0,0.8);
+            overflow: visible; /* Important for icons to pop out */
+        }
+
+        .mission-card:hover { 
+            border-color: var(--accent-orange); 
+            transform: scale(1.03) translateY(-1vh); 
+            box-shadow: 0 5vh 15vh rgba(255, 127, 0, 0.2); 
+        }
+
+        .mission-card.completed {
+            filter: saturate(0.5) brightness(0.7);
+        }
+
+        .mission-card.locked {
+            opacity: 0.8;
+            cursor: not-allowed;
+        }
+
+        .mission-icon {
+            position: absolute; 
+            right: -8vw; bottom: 2vh; 
+            width: 32vw; 
+            z-index: 200; /* Ensure it's on top of EVERYTHING */
+            filter: drop-shadow(0 0 2vw rgba(0,0,0,0.8));
+            transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none;
+        }
+        
+        /* Entrance animation for the car icon */
+        .active .mission-icon {
+            animation: carEnter 0.8s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+        }
+        @keyframes carEnter {
+            from { transform: translateX(20vw); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .mission-card:hover .mission-icon {
+            transform: scale(1.1) rotate(-3deg) translateX(-2vw);
+        }
+
+        .mission-tag {
+            background: var(--accent-cyan);
+            color: #000;
+            padding: 0.2vh 2vw;
+            font-size: 0.8vw;
+            font-weight: 900;
+            margin-bottom: 1vh;
+        }
+
+        .mission-card-content {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1.5vh;
+            max-width: 50%;
+        }
+
+        .mission-name { 
+            font-family: 'Orbitron', sans-serif; 
+            font-size: 3.5vw; 
+            font-weight: 900; 
+            color: #fff; 
+            line-height: 1;
+            text-shadow: 0 0 2vw #f00;
+        }
+
+        .mission-cta {
+            width: auto;
+            padding: 1.5vh 3vw;
+            background: var(--accent-orange);
+            color: #000;
+            text-align: center;
+            font-weight: 900;
+            font-size: 1.2vw;
+            text-transform: uppercase;
+            border-radius: 0.5vh;
+            clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);
+            transition: 0.3s;
+        }
+
+        .mission-card:hover .mission-cta { transform: scale(1.1); background: #fff; color: #000; box-shadow: 0 0 4vw #fff; }
+        
+        .card-check {
+            position: absolute;
+            top: 1vh;
+            right: 1vh;
+            font-size: 2vw;
+            color: var(--accent-cyan);
+        }
+
+        .card-lock {
+            position: absolute;
+            top: 1vh;
+            right: 1vh;
+            font-size: 2vw;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* --- DECORATIONS --- */
+        .bats-bg {
+            position: absolute;
+            inset: 0;
+            opacity: 0.1;
+            pointer-events: none;
+        }
+
+        @keyframes speedLines { 
+            from { transform: translateX(-50%); } 
+            to { transform: translateX(0%); } 
+        }
+
+        .card-bg-animation {
+            position: absolute; 
+            inset: 0; 
+            pointer-events: none; 
+            opacity: 0.15; 
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .speed-lines-gradient {
+            width: 200%; 
+            height: 100%; 
+            background: repeating-linear-gradient(45deg, transparent, transparent 100px, #fff 102px); 
+            animation: speedLines 2s infinite linear;
+        }
+
+        .reverse-anim .speed-lines-gradient {
+            animation-direction: reverse;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="sidebar">
+        <div class="event-node active" data-target="section-1">
+            <img src="https://i.pinimg.com/originals/a0/9e/b3/a09eb3d38d1de078a3e140c5f6a57192.jpg"
+                alt="Ev1">
+            <div class="node-timer">F1 Launch</div>
+        </div>
+        <div class="event-node" data-target="section-2">
+            <img src="https://play-lh.googleusercontent.com/RigazRuX0cEjfUhomDJuCIQqEwTaFpo9P_BjZBMPXqGKpekqoAWpPxXyX6yfjo_59gQ"
+                alt="Ev2">
+            <div class="node-timer">COLOR SWITCH</div>
+        </div>
+        <div class="event-node" data-target="section-3">
+            <img src="https://tse1.mm.bing.net/th/id/OIP.izaAMTlgerEBb4KnhH8deAHaHa?pid=ImgDet&w=184&h=184&c=7&dpr=1.3&o=7&rm=3"
+                alt="Ev3">
+            <div class="node-timer">ARROW REFLEX</div>
+        </div>
+        <div class="event-node" data-target="section-4">
+            <img src="https://th.bing.com/th/id/OIP.a7TTiQgIBg66tGtbriMxAwHaEc?w=310&h=186&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3"
+                alt="Ev4">
+            <div class="node-timer">Whack-A-Mole</div>
+        </div>
+        <div class="event-node" data-target="section-5">
+            <img src="https://www.shutterstock.com/image-vector/illustration-fox-260nw-240031888.jpg"
+                alt="Ev5">
+            <div class="node-timer">FOX HUNT</div>
+        </div>
+        <div class="event-node" data-target="section-6">
+            <img src="https://i5.walmartimages.com/asr/3319f898-7cc0-4ae5-95bc-2949db0b108c.680eab4bca1d6dd787839f3f0398c77f.jpeg?odnHeight=612&odnWidth=612&odnBg=FFFFFF"
+                alt="Ev6">
+            <div class="node-timer">FAKE BUTTON</div>
+        </div>
+        <div class="event-node" data-target="section-7">
+            <img src="https://blog.alltheanime.com/wp-content/uploads/2022/08/memories-stink-bomb-1024x555.jpg"
+                alt="Ev7">
+            <div class="node-timer">BOMB REFLEX</div>
+        </div>
+    </div>
+
+    <div class="viewport">
+        <div class="top-hud">
+            <a href="../../index.html" style="text-decoration: none; color: inherit;">
+                <div class="hud-item" style="border-color: var(--accent-orange);">
+                    <div class="hud-label">Hacked</div>
+                    <div class="hud-value" style="color: var(--accent-orange);">Apk</div>
+                </div>
+            </a>
+
+            <div class="hud-item">
+                <div class="hud-label">Time Left:</div>
+                <div class="hud-value">---</div>
+            </div>
+
+            <div class="progress-container">
+                <div class="progress-text">this is my style</div>
+                <div class="progress-fill"></div>
+            </div>
+
+            <div class="currency-hud">
+                <div class="currency">⚡ ∞</div>
+                <div class="currency">❤️ ∞</div>
+            </div>
+        </div>
+
+        <div class="hero-splash">
+            <!-- Focused on your local character at reaction-speed-test/img/2.png -->
+            <img src="reaction-speed-test/img/2.png"
+                onerror="this.src='https://api.dicebear.com/7.x/big-smile/svg?seed=Felix&backgroundColor=b6e3f4'"
+                class="hero-image-large" alt="Hero Featured">
+            <div class="event-info">
+                <div class="event-subtitle">Test your reflex. Own the moment.</div>
+                <div class="event-title">Speed decides everything.</div>
+                <button class="event-btn">SpeedTap!!!</button>
+            </div>
+        </div>
+
+        <div class="mission-grids-container">
+            <!-- SECTION 1: CHAPTER 1 -->
+            <div class="mission-section active" id="section-1">
+                <a href="reaction-speed-test/f1/game.html" class="mission-card">
+                    <!-- F1 High-Quality Car Icon -->
+                    <img src="reaction-speed-test/img/3.png" class="mission-icon" alt="F1 Icon">
+                    
+                    <div class="mission-card-content">
+                        <div class="mission-tag" style="background: #f00;">CHALLENGE 01</div>
+                        <div class="mission-name">F1<br>LAUNCH</div>
+                        <div class="mission-cta">PREPARE IGNITION</div>
+                    </div>
+                    
+                    <!-- Decorative Speed Lines -->
+                    <div class="card-bg-animation">
+                        <div class="speed-lines-gradient"></div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- SECTION 2: CHAPTER 2 -->
+            <div class="mission-section" id="section-2">
+                <a href="reaction-speed-test/Color/color.html" class="mission-card">
+                    <!-- Color Swatch High-Quality Icon -->
+                    <img src="reaction-speed-test/img/4.png" class="mission-icon" alt="Color icon" style="width: 28vw; right: -5vw; bottom: -0.4vh;">
+                    
+                    <div class="mission-card-content">
+                        <div class="mission-tag" style="background: var(--accent-cyan);">CHALLENGE 02</div>
+                        <div class="mission-name">COLOR<br>SWITCH</div>
+                        <div class="mission-cta">MATCH THE WAVE</div>
+                    </div>
+
+                    <!-- Decorative Speed Lines -->
+                    <div class="card-bg-animation reverse-anim">
+                        <div class="speed-lines-gradient"></div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- SECTION 3: SHADOW REFLEX -->
+            <div class="mission-section" id="section-3">
+                <a href="reaction-speed-test/shadow/shadow.html" class="mission-card">
+                    <img src="https://static.vecteezy.com/system/resources/thumbnails/051/225/438/small_2x/hand-drawn-red-arrow-on-a-transparent-background-perfect-for-presentations-marketing-materials-and-design-projects-png.png" class="mission-icon" alt="Arrow Icon" style="width: 35vw; right: -10vw; filter: drop-shadow(0 0 2vw rgba(255, 0, 0, 0.4)) brightness(1.2);">
+                    
+                    <div class="mission-card-content">
+                        <div class="mission-tag" style="background: #f00;">CHALLENGE 03</div>
+                        <div class="mission-name">ARROW<br>REFLEX</div>
+                        <div class="mission-cta">ENTER THE VOID</div>
+                    </div>
+
+                    <!-- Decorative Speed Lines -->
+                    <div class="card-bg-animation">
+                        <div class="speed-lines-gradient"></div>    
+                    </div>
+                </a>
+            </div>
+            <!-- SECTION 4: MOLE SMASH -->
+            <div class="mission-section" id="section-4">
+                <a href="reaction-speed-test/WHACK-A-MOLE/WHACK-A-MOLE.html" class="mission-card">
+                    <img src="reaction-speed-test\img\5.png" 
+                        class="mission-icon" alt="Mole Icon" style="width: 32vw; right: -8vw; bottom: -7vh; top: 0vh; bottom: -2vh;">
+                    
+                    <div class="mission-card-content">
+                        <div class="mission-tag" style="background: #f00;">CHALLENGE 04</div>
+                        <div class="mission-name">Whack-A-Mole</div>
+                        <div class="mission-cta">QUICK WHACK</div>
+                    </div>
+
+                    <div class="card-bg-animation reverse-anim">
+                        <div class="speed-lines-gradient"></div>    
+                    </div>
+                </a>
+            </div>
+            <!-- SECTION 5: FOX HUNT -->
+            <div class="mission-section" id="section-5">
+                <a href="reaction-speed-test/Fox/Fox.html" class="mission-card">
+                    <img src="reaction-speed-test\img\6.png" 
+                        class="mission-icon" alt="Fox Icon" style="width: 35vw; right: -5vw; bottom: -2vh; filter: drop-shadow(0 0 2vw rgba(255, 119, 0, 0.4));">
+                    
+                    <div class="mission-card-content">
+                        <div class="mission-tag" style="background: #f00;">CHALLENGE 05</div>
+                        <div class="mission-name">FOX<br>HUNT</div>
+                        <div class="mission-cta">FOLLOW THE TAIL</div>
+                    </div>
+
+                    <div class="card-bg-animation">
+                        <div class="speed-lines-gradient"></div>    
+                    </div>
+                </a>
+            </div>
+            
+            <!-- SECTION 6: FAKE BUTTON TRAP -->
+            <div class="mission-section" id="section-6">
+                <a href="reaction-speed-test/Fake/Fake.html" class="mission-card">
+                    <img src="reaction-speed-test\img\7.png" 
+                        class="mission-icon" alt="Trap Icon" style="width: 25vw; right: -2vw; bottom: 2vh; filter: drop-shadow(0 0 2vw rgba(210, 180, 140, 0.4));">
+                    
+                    <div class="mission-card-content">
+                        <div class="mission-tag" style="background: #d2b48c; color: #000;">CHALLENGE 06</div>
+                        <div class="mission-name">FAKE<br>BUTTON</div>
+                        <div class="mission-cta">FIND THE REAL</div>
+                    </div>
+
+                    <div class="card-bg-animation reverse-anim">
+                        <div class="speed-lines-gradient"></div>    
+                    </div>
+                </a>
+            </div>
+
+            <!-- SECTION 7: BOMB DEFUSE REFLEX -->
+            <div class="mission-section" id="section-7">
+                <a href="reaction-speed-test/bomb/bomb.html" class="mission-card">
+                    <img src="reaction-speed-test\img\10.png" 
+                        class="mission-icon" alt="Bomb Icon" style="width: 25vw; right: -2vw; bottom: 2vh; filter: drop-shadow(0 0 2vw rgba(255, 60, 60, 0.4));">
+                    
+                    <div class="mission-card-content">
+                        <div class="mission-tag" style="background: #ff3c3c; color: #fff;">CHALLENGE 07</div>
+                        <div class="mission-name">BOMB<br>DEFUSE</div>
+                        <div class="mission-cta">CUT THE WIRE</div>
+                    </div>
+
+                    <div class="card-bg-animation">
+                        <div class="speed-lines-gradient"></div>    
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- PREVENT BROWSER ZOOM ---
+        document.addEventListener('keydown', function (e) {
+            if (e.ctrlKey && (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '0')) {
+                e.preventDefault();
+            }
+        });
+        document.addEventListener('wheel', function (e) {
+            if (e.ctrlKey) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // DOM Elements
+        const eventNodes = document.querySelectorAll('.event-node');
+        const sections = document.querySelectorAll('.mission-section');
+
+        eventNodes.forEach(node => {
+            node.addEventListener('click', () => {
+                const target = node.getAttribute('data-target');
+
+                // Switch Active Node
+                eventNodes.forEach(n => n.classList.remove('active'));
+                node.classList.add('active');
+
+                // Switch Missions with animation
+                sections.forEach(sec => {
+                    sec.classList.remove('active');
+                    if (sec.id === target) {
+                        setTimeout(() => sec.classList.add('active'), 50);
+                    }
+                });
+            });
+        });
+
+        const cards = document.querySelectorAll('.mission-card:not(.locked)');
+        cards.forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                // Potential hover sound effect
+            });
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Arrow REFLEX | Neon Reaction</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Outfit:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-black: #050505;
+            --bg-dark-purple: #0a001a;
+            --accent-cyan: #00f2ff;
+            --accent-purple: #bc13fe;
+            --accent-red: #ff3c3c;
+            --accent-green: #39ff14;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+            user-select: none;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: fixed;
+        }
+
+        body {
+            background-color: var(--bg-black);
+            background-image: radial-gradient(circle at 50% 50%, var(--bg-dark-purple) 0%, var(--bg-black) 100%);
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        /* --- BACKGROUND PARTICLES --- */
+        #particles-container {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .particle {
+            position: absolute;
+            background: #fff;
+            border-radius: 50%;
+            opacity: 0.1;
+            filter: blur(1px);
+        }
+
+        /* --- TOP HUD --- */
+        .top-hud {
+            position: fixed;
+            top: 2vh;
+            left: 2vw;
+            right: 2vw;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            z-index: 10;
+        }
+
+        .back-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--accent-cyan);
+            color: var(--accent-cyan);
+            padding: 8px 20px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
+            text-decoration: none;
+            clip-path: polygon(15% 0, 100% 0, 85% 100%, 0 100%);
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .back-btn:hover {
+            background: var(--accent-cyan);
+            color: #000;
+            box-shadow: 0 0 15px var(--accent-cyan);
+        }
+
+        .hud-stats {
+            display: flex;
+            gap: 2vw;
+        }
+
+        .hud-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 3px solid var(--accent-cyan);
+            padding: 0.8vh 1.5vw;
+            clip-path: polygon(0% 0, 100% 0, 95% 100%, 0 100%);
+        }
+
+        .hud-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: var(--accent-cyan);
+            letter-spacing: 1px;
+        }
+
+        .hud-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        /* --- MAIN GAME AREA --- */
+        .game-area {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            perspective: 1000px;
+        }
+
+        .shadow-container {
+            width: 90vmin;
+            height: 90vmin;
+            max-width: 400px;
+            max-height: 400px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #shadow-element {
+            font-size: 180px;
+            font-family: 'Orbitron', sans-serif;
+            color: #000;
+            filter: drop-shadow(0 0 15px var(--accent-cyan));
+            opacity: 0;
+            transform: scale(0.8);
+            transition: none;
+            position: relative;
+            z-index: 5;
+        }
+
+        #shadow-element.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* --- FEEDBACK EFFECTS --- */
+        .feedback-text {
+            position: absolute;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            font-size: 4rem;
+            text-transform: uppercase;
+            pointer-events: none;
+            opacity: 0;
+            z-index: 15;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+        }
+
+        @keyframes feedbackPop {
+            0% { transform: scale(0.5) translateY(20px); opacity: 0; }
+            20% { opacity: 1; transform: scale(1.1) translateY(0); }
+            100% { transform: scale(1) translateY(-50px); opacity: 0; }
+        }
+
+        .screen-flash {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 20;
+            opacity: 0;
+        }
+
+        /* --- BOTTOM HINTS --- */
+        .bottom-ui {
+            position: fixed;
+            bottom: 3vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2vh;
+            z-index: 10;
+        }
+
+        .combo-bar-container {
+            width: 250px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid rgba(0, 242, 255, 0.2);
+        }
+
+        #combo-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+            transition: 0.1s;
+        }
+
+        .key-hints {
+            display: flex;
+            gap: 1vw;
+        }
+
+        .key-hint {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--accent-cyan);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
+            opacity: 0.6;
+        }
+
+        .key-hint span {
+            color: var(--accent-cyan);
+            font-weight: 900;
+        }
+
+        /* --- OVERLAY SCREEN --- */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            backdrop-filter: blur(5px);
+            transition: 0.5s;
+        }
+
+        .overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .game-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 5rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5vh;
+            text-align: center;
+            filter: drop-shadow(0 0 10px rgba(0, 242, 255, 0.4));
+        }
+
+        /* --- ANIME SPEED LINES --- */
+        .radial-speed-lines {
+            position: fixed;
+            inset: 0;
+            background: repeating-conic-gradient(from 0deg, 
+                transparent 0deg 2deg, 
+                rgba(255, 255, 255, 0.05) 3deg 5deg);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 2;
+            mask-image: radial-gradient(circle at center, transparent 30%, black 100%);
+            transition: opacity 0.2s;
+        }
+
+        .radial-speed-lines.active {
+            opacity: 1;
+            animation: radialSpin 0.3s linear infinite;
+        }
+
+        @keyframes radialSpin {
+            from { transform: rotate(0deg) scale(1); }
+            to { transform: rotate(360deg) scale(1.2); }
+        }
+
+        /* --- IMPACT FRAME --- */
+        #impact-frame {
+            position: fixed;
+            inset: 0;
+            background: #fff;
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .impact-active {
+            animation: impactFlash 0.15s linear;
+        }
+
+        @keyframes impactFlash {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; background: #000; }
+            100% { opacity: 0; }
+        }
+
+        .mode-selection {
+            display: flex;
+            gap: 2vw;
+            margin-bottom: 5vh;
+        }
+
+        .mode-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid var(--accent-cyan);
+            color: #fff;
+            padding: 1.5vh 2.5vw;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.3s;
+            clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);
+        }
+
+        .mode-btn:hover, .mode-btn.selected {
+            background: var(--accent-cyan);
+            color: #000;
+            box-shadow: 0 0 20px var(--accent-cyan);
+        }
+
+        .mode-btn.fake { border-color: var(--accent-purple); }
+        .mode-btn.fake:hover, .mode-btn.fake.selected { background: var(--accent-purple); box-shadow: 0 0 20px var(--accent-purple); }
+
+        .mode-btn.ultra { border-color: var(--accent-red); }
+        .mode-btn.ultra:hover, .mode-btn.ultra.selected { background: var(--accent-red); box-shadow: 0 0 20px var(--accent-red); }
+
+        .start-btn {
+            background: #fff;
+            color: #000;
+            padding: 2vh 5vw;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 900;
+            cursor: pointer;
+            border: none;
+            clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%);
+            transition: 0.3s;
+            animation: glowPulse 2s infinite;
+        }
+
+        @keyframes glowPulse {
+            0% { box-shadow: 0 0 5px #fff; }
+            50% { box-shadow: 0 0 30px #fff; }
+            100% { box-shadow: 0 0 5px #fff; }
+        }
+
+        .glitch-flash {
+            animation: glitchEffect 0.15s steps(3) infinite;
+            filter: contrast(300%) grayscale(1);
+        }
+
+        @keyframes glitchEffect {
+            0% { transform: translate(3px, 3px); opacity: 0.8; }
+            50% { transform: translate(-3px, -3px); opacity: 1; }
+            100% { transform: translate(2px, -2px); opacity: 0.9; }
+        }
+
+        .shake {
+            animation: shakeScreen 0.2s linear infinite;
+        }
+
+        @keyframes shakeScreen {
+            0% { transform: translate(8px, 8px); }
+            25% { transform: translate(-8px, -8px); }
+            50% { transform: translate(8px, -8px); }
+            75% { transform: translate(-8px, 8px); }
+            100% { transform: translate(0, 0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="particles-container"></div>
+    <div id="impact-frame"></div>
+    <div class="radial-speed-lines" id="speed-lines"></div>
+
+    <div class="top-hud">
+        <a href="../../index.html" class="back-btn">
+            <span>←</span> EXIT HUB
+        </a>
+        <div class="hud-stats">
+            <div class="hud-item">
+                <div class="hud-label">Score</div>
+                <div id="score" class="hud-value">0000</div>
+            </div>
+            <div class="hud-item">
+                <div class="hud-label">Best</div>
+                <div id="best-score" class="hud-value">0000</div>
+            </div>
+        </div>
+        <div class="hud-item">
+            <div class="hud-label">Reaction</div>
+            <div id="reaction-time" class="hud-value">---ms</div>
+        </div>
+    </div>
+
+    <div class="game-area" id="game-area">
+        <div class="shadow-container">
+            <div id="shadow-element">↑</div>
+        </div>
+        <div id="feedback-text" class="feedback-text">PERFECT</div>
+    </div>
+
+    <div class="bottom-ui">
+        <div id="combo-text" style="font-family: 'Orbitron'; font-size: 0.8rem; color: var(--accent-purple);">COMBO X1</div>
+        <div class="combo-bar-container">
+            <div id="combo-fill"></div>
+        </div>
+        <div class="key-hints">
+            <div class="key-hint"><span>W</span> UP</div>
+            <div class="key-hint"><span>S</span> DOWN</div>
+            <div class="key-hint"><span>A</span> LEFT</div>
+            <div class="key-hint"><span>D</span> RIGHT</div>
+        </div>
+    </div>
+
+    <div class="screen-flash" id="flash-overlay"></div>
+
+    <div class="overlay" id="start-overlay">
+        <a href="../../index.html" class="back-btn" style="position: absolute; top: 4vh; left: 4vw;">
+            <span>←</span> EXIT HUB
+        </a>
+        <h1 class="game-title">SHADOW REFLEX</h1>
+        
+        <div class="mode-selection">
+            <button class="mode-btn selected" id="btn-classic">CLASSIC</button>
+            <button class="mode-btn fake" id="btn-fake">FAKE-OUT</button>
+            <button class="mode-btn ultra" id="btn-ultra">ULTRA</button>
+        </div>
+
+        <button class="start-btn" id="start-btn">INITIATE SEQUENCE</button>
+        
+        <div style="margin-top: 5vh; font-size: 0.8rem; color: #888; text-align: center; line-height: 1.6;">
+            REACT TO SHADOWS INSTANTLY USING <span style="color: var(--accent-cyan);">WASD</span><br>
+            BEWARE OF <span style="color: var(--accent-purple);">GLITCHY FAKES</span>! DO NOT REACT TO THEM.<br>
+            SPEED INCREASES EVERY 5 SUCCESSFUL HITS.
+        </div>
+    </div>
+
+    <script>
+        // --- PREVENT BROWSER ZOOM ---
+        document.addEventListener('keydown', function (e) {
+            if (e.ctrlKey && (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '0')) {
+                e.preventDefault();
+            }
+        });
+        document.addEventListener('wheel', function (e) {
+            if (e.ctrlKey) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // --- CONFIG & STATE ---
+        const config = {
+            classic: { delay: [1500, 3000], visible: 600, fakeChance: 0 },
+            fake: { delay: [1200, 2500], visible: 500, fakeChance: 0.35 },
+            ultra: { delay: [900, 1500], visible: 220, fakeChance: 0.15 }
+        };
+
+        const gameState = {
+            active: false,
+            mode: 'classic',
+            score: 0,
+            bestScore: parseInt(localStorage.getItem('shadowReflexBest')) || 0,
+            combo: 0,
+            currentShadow: null,
+            timer: null,
+            appearanceTime: 0,
+            difficulty: 1
+        };
+
+        const shadowElement = document.getElementById('shadow-element');
+        const startOverlay = document.getElementById('start-overlay');
+        const scoreEl = document.getElementById('score');
+        const bestScoreEl = document.getElementById('best-score');
+        const reactionEl = document.getElementById('reaction-time');
+        const comboFill = document.getElementById('combo-fill');
+        const comboText = document.getElementById('combo-text');
+        const feedbackEl = document.getElementById('feedback-text');
+        const flashOverlay = document.getElementById('flash-overlay');
+        const speedLines = document.getElementById('speed-lines');
+        const impactFrame = document.getElementById('impact-frame');
+
+        const kanjiFeedback = {
+            PERFECT: "完璧",
+            FAST: "速い",
+            GOOD: "良好",
+            OK: "普通",
+            "TOO SLOW!": "遅い",
+            "WRONG RESPONSE!": "失敗"
+        };
+
+        // --- AUDIO ENGINE ---
+        const AudioEngine = (() => {
+            let audioCtx = null;
+            
+            const init = () => {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+            };
+
+            const play = (freq, type, duration, volume = 0.1) => {
+                if (!audioCtx) return;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            };
+
+            return { init, play };
+        })();
+
+        // --- CORE GAMEPLAY ---
+        document.getElementById('btn-classic').onclick = () => setMode('classic');
+        document.getElementById('btn-fake').onclick = () => setMode('fake');
+        document.getElementById('btn-ultra').onclick = () => setMode('ultra');
+        document.getElementById('start-btn').onclick = startGame;
+
+        function setMode(mode) {
+            gameState.mode = mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('selected'));
+            document.getElementById(`btn-${mode}`).classList.add('selected');
+        }
+
+        function startGame() {
+            AudioEngine.init();
+            startOverlay.classList.add('hidden');
+            gameState.active = true;
+            gameState.score = 0;
+            gameState.combo = 0;
+            gameState.difficulty = 1;
+            updateHUD();
+            nextRound();
+        }
+
+        function nextRound() {
+            if (!gameState.active) return;
+            
+            shadowElement.classList.remove('visible', 'glitch-flash');
+            gameState.currentShadow = null;
+
+            const modeCfg = config[gameState.mode];
+            const delay = Math.random() * (modeCfg.delay[1] - modeCfg.delay[0]) + modeCfg.delay[0];
+            const adjustedDelay = delay / (1 + (gameState.difficulty * 0.08));
+
+            gameState.timer = setTimeout(spawnShadow, adjustedDelay);
+        }
+
+        function spawnShadow() {
+            const modeCfg = config[gameState.mode];
+            const isFake = Math.random() < modeCfg.fakeChance;
+            
+            const directions = ['W', 'A', 'S', 'D'];
+            const arrows = { 'W': '↑', 'A': '←', 'S': '↓', 'D': '→' };
+            const dir = directions[Math.floor(Math.random() * directions.length)];
+            
+            gameState.currentShadow = { key: dir, fake: isFake };
+            shadowElement.textContent = arrows[dir];
+            
+            // Visual Styling
+            shadowElement.style.filter = isFake 
+                ? 'drop-shadow(0 0 20px var(--accent-purple))' 
+                : 'drop-shadow(0 0 25px var(--accent-cyan))';
+            
+            if (isFake) shadowElement.classList.add('glitch-flash');
+            
+            shadowElement.classList.add('visible');
+            if(!isFake) speedLines.classList.add('active'); // Show speed lines for real shadows
+
+            gameState.appearanceTime = performance.now();
+            AudioEngine.play(isFake ? 150 : 800, 'square', 0.1, 0.06);
+
+            // Visibility Timer
+            const visibleDuration = modeCfg.visible / (1 + (gameState.difficulty * 0.12));
+            setTimeout(() => {
+                if (gameState.currentShadow) {
+                    if (!gameState.currentShadow.fake) {
+                        endGame("TOO SLOW!");
+                    } else {
+                        // Successfully ignored a fake
+                        triggerFeedback("STAYED COOL", "var(--accent-green)");
+                        gameState.score += 15;
+                        speedLines.classList.remove('active');
+                        nextRound();
+                    }
+                }
+            }, visibleDuration);
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (!gameState.active) return;
+            const key = e.key.toUpperCase();
+            if (!['W', 'A', 'S', 'D'].includes(key)) return;
+
+            if (!gameState.currentShadow) {
+                endGame("FALSE START!");
+                return;
+            }
+
+            if (gameState.currentShadow.fake) {
+                endGame("TRICKED!");
+                return;
+            }
+
+            if (key === gameState.currentShadow.key) {
+                handleCorrect(performance.now() - gameState.appearanceTime);
+            } else {
+                endGame("WRONG RESPONSE!");
+            }
+        });
+
+        function handleCorrect(reactionTime) {
+            const time = Math.round(reactionTime);
+            reactionEl.textContent = time + "ms";
+            
+            gameState.currentShadow = null;
+            shadowElement.classList.remove('visible');
+            speedLines.classList.remove('active');
+
+            let bonus = 10;
+            let color = "white";
+            let msg = "GOOD";
+
+            if (time < 220) { 
+                msg = "PERFECT"; 
+                bonus = 30; 
+                color = "var(--accent-cyan)"; 
+                triggerFlash("var(--accent-cyan)"); 
+                triggerImpact();
+                AudioEngine.play(1200, 'sine', 0.25); 
+            }
+            else if (time < 400) { msg = "FAST"; bonus = 20; color = "var(--accent-green)"; AudioEngine.play(1000, 'sine', 0.15); }
+            else { msg = "OK"; bonus = 10; color = "#fff"; AudioEngine.play(800, 'sine', 0.1); }
+
+            triggerFeedback(msg, color);
+            
+            gameState.combo++;
+            gameState.score += Math.round(bonus * (1 + gameState.combo * 0.15));
+            
+            if (gameState.score > gameState.bestScore) {
+                gameState.bestScore = gameState.score;
+                localStorage.setItem('shadowReflexBest', gameState.bestScore);
+            }
+
+            if (gameState.combo % 5 === 0) gameState.difficulty += 0.4;
+
+            updateHUD();
+            nextRound();
+        }
+
+        function triggerImpact() {
+            impactFrame.classList.add('impact-active');
+            setTimeout(() => impactFrame.classList.remove('impact-active'), 150);
+        }
+
+        function triggerFeedback(text, color) {
+            const kanji = kanjiFeedback[text] || "";
+            feedbackEl.innerHTML = `${text}<br><span style="font-size: 0.5em; opacity: 0.8;">${kanji}</span>`;
+            feedbackEl.style.color = color;
+            feedbackEl.style.animation = 'none';
+            feedbackEl.offsetHeight; 
+            feedbackEl.style.animation = 'feedbackPop 0.6s forwards';
+        }
+
+        function triggerFlash(color) {
+            flashOverlay.style.background = color;
+            flashOverlay.style.opacity = '0.4';
+            setTimeout(() => flashOverlay.style.opacity = '0', 120);
+        }
+
+        function updateHUD() {
+            scoreEl.textContent = gameState.score.toString().padStart(4, '0');
+            bestScoreEl.textContent = gameState.bestScore.toString().padStart(4, '0');
+            const comboProgress = (gameState.combo % 10) * 10;
+            comboFill.style.width = comboProgress + "%";
+            comboText.textContent = `COMBO X${Math.floor(gameState.combo / 10) + 1}`;
+        }
+
+        function endGame(reason) {
+            gameState.active = false;
+            clearTimeout(gameState.timer);
+            speedLines.classList.remove('active');
+            
+            AudioEngine.play(80, 'sawtooth', 0.6, 0.25);
+            document.body.classList.add('shake');
+            flashOverlay.style.background = "var(--accent-red)";
+            flashOverlay.style.opacity = "0.6";
+            
+            setTimeout(() => {
+                document.body.classList.remove('shake');
+                flashOverlay.style.opacity = "0";
+                startOverlay.classList.remove('hidden');
+                
+                const kanji = kanjiFeedback[reason] || "";
+                document.querySelector('.game-title').innerHTML = `${reason}<br><span style="font-size: 0.3em;">${kanji}</span>`;
+                document.getElementById('start-btn').textContent = "RETRY SEQUENCE";
+            }, 600);
+        }
+
+        // --- PARTICLES ---
+        function createParticles() {
+            const container = document.getElementById('particles-container');
+            for(let i=0; i<60; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                const size = Math.random() * 4 + 1;
+                p.style.width = size + 'px';
+                p.style.height = size + 'px';
+                p.style.left = Math.random() * 100 + 'vw';
+                p.style.top = Math.random() * 100 + 'vh';
+                container.appendChild(p);
+                animateParticle(p);
+            }
+        }
+
+        function animateParticle(p) {
+            const duration = Math.random() * 25000 + 15000;
+            p.animate([
+                { transform: `translate(0, 0)` },
+                { transform: `translate(${Math.random() * 150 - 75}px, ${Math.random() * 150 - 75}px)` }
+            ], { duration, iterations: Infinity, direction: 'alternate' });
+        }
+
+        createParticles();
+        updateHUD();
+    </script>
+</body>
+</html>

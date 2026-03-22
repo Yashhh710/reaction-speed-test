@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>FOX HUNT | Catch the Fox</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --forest-green: #2d5a27;
+            --grass-light: #7dc045;
+            --fox-orange: #ff7700;
+            --sky-blue: #87ceeb;
+            --ui-bg: #fdf5e6;
+            --dirt: #5c4033;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+            user-select: none;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: fixed;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: fixed;
+        }
+
+        body {
+            background-color: var(--grass-light);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-image: radial-gradient(circle at 50% 50%, var(--grass-light) 0%, #6ba33b 100%);
+            -webkit-text-size-adjust: 100%;
+        }
+
+        /* --- UI HEADER --- */
+        .hud-top {
+            position: fixed;
+            top: 20px;
+            display: flex;
+            gap: 20px;
+            z-index: 100;
+        }
+
+        .stat-box {
+            background: var(--ui-bg);
+            padding: 10px 25px;
+            border-radius: 15px;
+            border: 3px solid var(--dirt);
+            box-shadow: 0 6px 0 var(--dirt);
+            text-align: center;
+        }
+
+        .stat-label { font-size: 0.7rem; font-weight: 700; opacity: 0.6; text-transform: uppercase; }
+        .stat-value { font-size: 1.5rem; font-weight: 900; color: var(--dirt); }
+
+        /* --- PLAY AREA --- */
+        #play-area {
+            position: relative;
+            width: 90vw;
+            height: 70vh;
+            max-width: 800px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 40px;
+            cursor: none; /* Custom crosshair */
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* --- CROSSHAIR --- */
+        #crosshair {
+            position: fixed;
+            width: 40px;
+            height: 40px;
+            border: 2px solid var(--fox-orange);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            mix-blend-mode: difference;
+            transform: translate(-50%, -50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        #crosshair::before, #crosshair::after {
+            content: "";
+            position: absolute;
+            background: var(--fox-orange);
+        }
+        #crosshair::before { width: 100%; height: 2px; }
+        #crosshair::after { height: 100%; width: 2px; }
+
+        .muzzle-flash {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle, #fff 0%, #ffcc00 50%, transparent 100%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 500;
+            animation: flashScale 0.1s linear forwards;
+        }
+
+        @keyframes flashScale {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+
+        .hit-marker {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f00;
+            border-left: none;
+            border-top: none;
+            transform: rotate(45deg);
+            pointer-events: none;
+            z-index: 600;
+            animation: hitPop 0.2s linear forwards;
+        }
+
+        @keyframes hitPop {
+            0% { transform: scale(2) rotate(45deg); opacity: 1; }
+            100% { transform: scale(1) rotate(45deg); opacity: 0; }
+        }
+
+        /* Environment Objects (Bushes, etc) */
+        .spot {
+            position: absolute;
+            transition: 0.3s;
+        }
+
+        .bush {
+            width: 80px;
+            height: 50px;
+            background: var(--forest-green);
+            border-radius: 50px 50px 10px 10px;
+            z-index: 10;
+        }
+
+        .bush::after {
+            content: "";
+            position: absolute;
+            top: -10px;
+            left: 10px;
+            width: 40px;
+            height: 30px;
+            background: #23471e;
+            border-radius: 50%;
+        }
+
+        /* Fox Character */
+        .fox {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: var(--fox-orange);
+            border-radius: 50% 50% 10% 10%;
+            cursor: pointer;
+            z-index: 5;
+            transition: transform 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            transform: scale(0);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 3px solid #000;
+        }
+
+        .fox.active { transform: scale(1); }
+
+        /* Ears */
+        .fox::before, .fox::after {
+            content: "";
+            position: absolute;
+            top: -15px;
+            width: 20px;
+            height: 25px;
+            background: var(--fox-orange);
+            border: 3px solid #000;
+            border-radius: 50% 50% 0 0;
+        }
+        .fox::before { left: 5px; transform: rotate(-15deg); }
+        .fox::after { right: 5px; transform: rotate(15deg); }
+
+        /* Face */
+        .fox-face {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .fox-eyes { display: flex; gap: 10px; margin-top: -10px; }
+        .eye { width: 6px; height: 6px; background: #000; border-radius: 50%; }
+        .fox-nose { width: 10px; height: 7px; background: #000; border-radius: 50%; margin-top: 5px; }
+
+        /* VARIATIONS */
+        .fox.fast { transform: scale(0.7); background: #ffcc00; } /* Yellow/Gold */
+        .fox.fake { opacity: 0.4; pointer-events: none; }
+        .fox.shield { border-width: 6px; border-color: #333; }
+
+        /* --- CONTROLS --- */
+        .overlay-start {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            color: #fff;
+            border-radius: inherit;
+        }
+
+        .title { font-size: 3rem; font-weight: 900; margin-bottom: 20px; color: var(--fox-orange); }
+
+        .btn {
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            font-weight: 900;
+            background: var(--ui-bg);
+            color: var(--dirt);
+            border: 4px solid var(--dirt);
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 8px 0 var(--dirt);
+            transition: 0.1s;
+        }
+
+        .btn:active { transform: translateY(4px); box-shadow: 0 4px 0 var(--dirt); }
+
+        .back-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: rgba(0,0,0,0.3);
+            color: #fff;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 700;
+            z-index: 200;
+        }
+
+        /* --- SCORE POP UP --- */
+        .score-popup {
+            position: absolute;
+            color: var(--fox-orange);
+            font-weight: 900;
+            pointer-events: none;
+            animation: riseFade 0.5s ease-out forwards;
+        }
+
+        @keyframes riseFade {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-50px); opacity: 0; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <a href="../../index.html" class="back-btn">← EXIT HUB</a>
+
+    <div class="hud-top">
+        <div class="stat-box">
+            <div class="stat-label">Score</div>
+            <div id="score" class="stat-value">0</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">Time</div>
+            <div id="timer" class="stat-value">30</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">Best</div>
+            <div id="best-score" class="stat-value">0</div>
+        </div>
+    </div>
+
+    <div id="play-area">
+        <div id="crosshair"></div>
+        <div id="start-screen" class="overlay-start">
+            <div class="title">FOX HUNT</div>
+            <div style="margin-bottom: 30px; text-align: center;">Catch the orange foxes!<br>Avoid the ghost foxes! 👻</div>
+            <button id="start-btn" class="btn">BEGIN CHASE</button>
+        </div>
+        <!-- Environment and Foxes will spawn here -->
+    </div>
+
+    <script>
+        // --- PREVENT BROWSER ZOOM ---
+        document.addEventListener('keydown', function (e) {
+            if (e.ctrlKey && (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '0')) {
+                e.preventDefault();
+            }
+        });
+        document.addEventListener('wheel', function (e) {
+            if (e.ctrlKey) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        const playArea = document.getElementById('play-area');
+        const scoreEl = document.getElementById('score');
+        const timerEl = document.getElementById('timer');
+        const bestEl = document.getElementById('best-score');
+        const startBtn = document.getElementById('start-btn');
+        const startScreen = document.getElementById('start-screen');
+        const crosshair = document.getElementById('crosshair');
+
+        let score = 0;
+        let timeLeft = 30;
+        let gameActive = false;
+        let bestScore = localStorage.getItem('foxHuntBest') || 0;
+        bestEl.textContent = bestScore;
+
+        // Audio System
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playTone(freq, dur) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.frequency.setTargetAtTime(freq, audioCtx.currentTime, 0.05);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+            osc.start(); osc.stop(audioCtx.currentTime + dur);
+        }
+
+        function spawnFox() {
+            if (!gameActive) return;
+
+            const fox = document.createElement('div');
+            fox.className = 'fox';
+            
+            // Randomly determine type
+            const rand = Math.random();
+            let type = 'normal';
+            if (rand < 0.1) type = 'fast';
+            else if (rand < 0.25) type = 'fake';
+            else if (rand < 0.35) type = 'shield';
+
+            if (type !== 'normal') fox.classList.add(type);
+            
+            fox.innerHTML = '<div class="fox-face"><div class="fox-eyes"><div class="eye"></div><div class="eye"></div></div><div class="fox-nose"></div></div>';
+            
+            // Position
+            const padding = 60;
+            const x = Math.random() * (playArea.clientWidth - padding * 2) + padding;
+            const y = Math.random() * (playArea.clientHeight - padding * 2) + padding;
+            fox.style.left = `${x}px`;
+            fox.style.top = `${y}px`;
+
+            // Click Logic
+            let clicks = type === 'shield' ? 2 : 1;
+            fox.onclick = (e) => {
+                e.stopPropagation();
+                clicks--;
+                if (clicks <= 0) {
+                    const bonus = type === 'fast' ? 5 : 1;
+                    score += bonus;
+                    scoreEl.textContent = score;
+                    showPop(x, y, `+${bonus}`);
+                    showHit(x, y); // Impact marker
+                    playTone(800 + (bonus * 100), 0.1);
+                    fox.remove();
+                } else {
+                    playTone(400, 0.05);
+                    fox.style.transform = 'scale(0.8)';
+                    setTimeout(() => fox.style.transform = 'scale(1)', 100);
+                }
+            };
+
+            playArea.appendChild(fox);
+            setTimeout(() => fox.classList.add('active'), 50);
+
+            // Visibility Duration
+            let duration = type === 'fast' ? 600 : 1500;
+            duration -= (score * 5); // Speed up
+            duration = Math.max(duration, 400);
+
+            setTimeout(() => {
+                if (fox.parentElement) {
+                    fox.classList.remove('active');
+                    setTimeout(() => fox.remove(), 200);
+                }
+            }, duration);
+
+            // Schedule next spawn
+            const nextSpawn = Math.max(800 - (score * 10), 400);
+            setTimeout(spawnFox, nextSpawn);
+        }
+
+        function showPop(x, y, text) {
+            const p = document.createElement('div');
+            p.className = 'score-popup';
+            p.textContent = text;
+            p.style.left = `${x}px`;
+            p.style.top = `${y}px`;
+            playArea.appendChild(p);
+            setTimeout(() => p.remove(), 500);
+        }
+
+        function startGame() {
+            score = 0;
+            timeLeft = 30;
+            gameActive = true;
+            scoreEl.textContent = "0";
+            timerEl.textContent = "30";
+            startScreen.style.display = 'none';
+
+            spawnFox();
+
+            const timer = setInterval(() => {
+                timeLeft--;
+                timerEl.textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        function endGame() {
+            gameActive = false;
+            startScreen.style.display = 'flex';
+            document.querySelector('.title').textContent = "HUNT OVER";
+            document.getElementById('start-btn').textContent = "REPLAY";
+            
+            if (score > bestScore) {
+                bestScore = score;
+                localStorage.setItem('foxHuntBest', bestScore);
+                bestEl.textContent = bestScore;
+            }
+            
+            // Clear area
+            document.querySelectorAll('.fox').forEach(f => f.remove());
+        }
+
+        startBtn.onclick = startGame;
+
+        // Custom Crosshair follow
+        document.addEventListener('mousemove', (e) => {
+            if (!gameActive) { crosshair.style.opacity = '0'; return; }
+            crosshair.style.opacity = '1';
+            crosshair.style.left = `${e.clientX}px`;
+            crosshair.style.top = `${e.clientY}px`;
+        });
+
+        // Shooting logic (muzzle flash and sound)
+        playArea.onclick = (e) => {
+            if (!gameActive) return;
+            
+            // Muzzle flash at click position
+            const flash = document.createElement('div');
+            flash.className = 'muzzle-flash';
+            flash.style.left = `${e.clientX - 50}px`;
+            flash.style.top = `${e.clientY - 50}px`;
+            document.body.appendChild(flash);
+            setTimeout(() => flash.remove(), 100);
+
+            playTone(150, 0.1, 'sawtooth'); // Gun shot sound
+        };
+
+        function showHit(x, y) {
+            const h = document.createElement('div');
+            h.className = 'hit-marker';
+            h.style.left = `${x}px`;
+            h.style.top = `${y}px`;
+            playArea.appendChild(h);
+            setTimeout(() => h.remove(), 200);
+        }
+
+        function playTone(freq, dur, type = 'sine') {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.type = type;
+            osc.frequency.setTargetAtTime(freq, audioCtx.currentTime, 0.05);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+            osc.start(); osc.stop(audioCtx.currentTime + dur);
+        }
+
+    </script>
+</body>
+</html>

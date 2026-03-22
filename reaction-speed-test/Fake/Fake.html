@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>FAKE BUTTON TRAP | Classic Reflex</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #0c001a;
+            --bg-card: rgba(30, 0, 60, 0.8);
+            --btn-real: #00f2ff; /* Neon Cyan */
+            --btn-fake: #220044; /* Dark Purple */
+            --btn-wrong: #ff0055; /* Hot Pink */
+            --text: #ffffff;
+            --accent: #ffcc00; /* Anime Gold */
+            --outline: #000000;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+            user-select: none;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: fixed;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            background-image: 
+                radial-gradient(circle at 50% 50%, #1e003c 0%, #0c001a 100%),
+                url('https://www.transparenttextures.com/patterns/cubes.png');
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        /* Manga Speed Lines Background */
+        .speed-lines {
+            position: absolute;
+            inset: 0;
+            background: repeating-conic-gradient(from 0deg, transparent 0deg 1deg, rgba(255,255,255,0.03) 1deg 2deg);
+            pointer-events: none;
+            mix-blend-mode: overlay;
+            animation: rotate 60s linear infinite;
+        }
+
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* --- SCREENS --- */
+        .screen {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            z-index: 10;
+        }
+
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.95);
+        }
+
+        /* --- HOME SCREEN --- */
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 4rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin-bottom: 4vh;
+            color: var(--accent);
+            text-align: center;
+            text-shadow: 
+                4px 4px 0px var(--outline),
+                0 0 20px rgba(255, 204, 0, 0.4);
+            transform: skew(-5deg);
+        }
+
+        .menu-btns {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 100%;
+            max-width: 320px;
+        }
+
+        button {
+            padding: 18px 30px;
+            font-size: 1.3rem;
+            font-weight: 900;
+            background: var(--bg-card);
+            border: 3px solid var(--text);
+            color: var(--text);
+            cursor: pointer;
+            border-radius: 4px;
+            transition: 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 6px 6px 0px var(--outline);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        button:hover {
+            background: var(--btn-real);
+            color: #000;
+            transform: translate(-2px, -2px);
+            box-shadow: 8px 8px 0px var(--outline);
+        }
+
+        button:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px var(--outline);
+        }
+
+        /* --- GAME SCREEN --- */
+        .hud {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2vh;
+            padding: 0 10px;
+        }
+
+        .stat {
+            text-align: left;
+        }
+
+        .stat-label { font-size: 0.8rem; opacity: 0.6; text-transform: uppercase; }
+        .stat-value { font-size: 1.8rem; font-weight: 900; }
+
+        .timer-container {
+            width: 100%;
+            max-width: 600px;
+            height: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 5vh;
+        }
+
+        .timer-bar {
+            width: 100%;
+            height: 100%;
+            background: var(--accent);
+            transition: width 0.1s linear;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            width: 100%;
+            max-width: 500px;
+            aspect-ratio: 1/1;
+        }
+
+        .game-btn {
+            background: var(--bg-card);
+            border: 3px solid var(--text);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 1.1rem;
+            color: rgba(255,255,255,0.1);
+            position: relative;
+            cursor: pointer;
+            transition: all 0.1s;
+            box-shadow: 4px 4px 0 var(--outline);
+            text-transform: uppercase;
+            overflow: hidden;
+        }
+
+        .game-btn::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%);
+            transform: translateX(-100%);
+            transition: transform 0.3s;
+        }
+
+        .game-btn:hover::after {
+            transform: translateX(100%);
+        }
+
+        .game-btn:hover {
+            transform: translate(-1px, -1px);
+            box-shadow: 5px 5px 0 var(--outline);
+            transition-delay: 0.15s;
+        }
+
+        .game-btn.real {
+            background: var(--btn-real);
+            color: #000;
+            box-shadow: 4px 4px 0 var(--outline);
+            border-color: var(--outline);
+        }
+
+        .game-btn.real:hover {
+            transition-delay: 0s;
+            background: #fff;
+            filter: drop-shadow(0 0 10px var(--btn-real));
+        }
+
+        .game-btn.wrong {
+            background: var(--btn-wrong);
+            animation: shake 0.3s ease;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+
+        .game-btn.ghost:hover {
+            opacity: 0;
+            transform: scale(0.5);
+            pointer-events: none;
+        }
+
+        .status-text {
+            margin-top: 5vh;
+            font-size: 1.5rem;
+            font-weight: 900;
+            font-style: italic;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--accent);
+            text-shadow: 2px 2px 0 var(--outline);
+        }
+
+        /* --- GAME OVER --- */
+        .game-over-card {
+            background: var(--bg-card);
+            padding: 5vh 5vw;
+            border-radius: 4px;
+            border: 4px solid var(--text);
+            text-align: center;
+            box-shadow: 15px 15px 0 var(--outline);
+            backdrop-filter: blur(10px);
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 25px;
+            left: 25px;
+            padding: 12px 24px;
+            font-size: 1rem;
+            text-decoration: none;
+            background: var(--accent);
+            border: 3px solid var(--outline);
+            border-radius: 0;
+            color: #000;
+            font-weight: 900;
+            box-shadow: 4px 4px 0 var(--outline);
+            z-index: 1000;
+            transition: 0.2s;
+            text-transform: uppercase;
+            clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);
+        }
+
+        .back-btn:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 6px 6px 0 var(--outline);
+            background: #fff;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .fade-in { animation: fadeIn 0.2s forwards; }
+
+        /* Mobile specific grid adjustments */
+        @media (max-width: 450px) {
+            .grid { gap: 10px; max-width: 90vw; }
+            h1 { font-size: 2.2rem; }
+        }
+
+        @keyframes slash {
+            0% { transform: translate(-50%, -50%) scale(0) rotate(-45deg); opacity: 1; }
+            50% { transform: translate(-50%, -50%) scale(1.5) rotate(-45deg); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(2) rotate(-45deg); opacity: 0; }
+        }
+
+        .slash-effect {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            font-size: 8rem;
+            font-weight: 900;
+            color: var(--accent);
+            text-shadow: 8px 8px 0 var(--outline);
+            pointer-events: none;
+            z-index: 2000;
+            animation: slash 0.4s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+            font-style: italic;
+        }
+
+        .screen-shake {
+            animation: shake 0.2s infinite;
+        }
+    </style>
+</head>
+<body id="body">
+
+    <a href="../../index.html" class="back-btn">← HUB</a>
+
+    <div class="speed-lines"></div>
+
+    <!-- HOME SCREEN -->
+    <div id="home-screen" class="screen">
+        <h1>FAKE BUTTON<br>TRAP</h1>
+        <div class="menu-btns">
+            <button onclick="startGame()">START GAME</button>
+            <button id="best-score-btn">BEST: 0</button>
+        </div>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div id="game-screen" class="screen hidden">
+        <div class="hud">
+            <div class="stat">
+                <div class="stat-label">Current Score</div>
+                <div id="score" class="stat-value">0</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Level</div>
+                <div id="level" class="stat-value">1</div>
+            </div>
+        </div>
+        <div class="timer-container">
+            <div id="timer-bar" class="timer-bar"></div>
+        </div>
+        <div id="grid" class="grid">
+            <!-- Buttons dynamically generated -->
+        </div>
+        <div class="status-text">FIND THE REAL ONE</div>
+    </div>
+
+    <!-- GAME OVER SCREEN -->
+    <div id="game-over-screen" class="screen hidden">
+        <div class="game-over-card">
+            <h1 style="font-size: 2.5rem; color: var(--btn-wrong);">GAME OVER</h1>
+            <div class="stat" style="text-align: center; margin-bottom: 4vh;">
+                <div class="stat-label">Final Score</div>
+                <div id="final-score" class="stat-value">0</div>
+                <div class="stat-label" style="margin-top: 10px;">New Best!</div>
+                <div id="new-best-flag" class="hidden" style="color: var(--btn-real); font-weight: 900;">★ ★ ★</div>
+            </div>
+            <div class="menu-btns" style="max-width: none;">
+                <button onclick="startGame()">RETRY</button>
+                <button onclick="showHome()">EXIT</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- PREVENT BROWSER ZOOM ---
+        document.addEventListener('keydown', function (e) {
+            if (e.ctrlKey && (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '0')) {
+                e.preventDefault();
+            }
+        });
+        document.addEventListener('wheel', function (e) {
+            if (e.ctrlKey) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        const screens = {
+            home: document.getElementById('home-screen'),
+            game: document.getElementById('game-screen'),
+            over: document.getElementById('game-over-screen')
+        };
+
+        const grid = document.getElementById('grid');
+        const scoreEl = document.getElementById('score');
+        const levelEl = document.getElementById('level');
+        const timerBar = document.getElementById('timer-bar');
+        const finalScoreEl = document.getElementById('final-score');
+        const bestScoreBtn = document.getElementById('best-score-btn');
+
+        let score = 0;
+        let level = 1;
+        let timeLeft = 100;
+        let timerId = null;
+        let gameActive = false;
+        let bestScore = localStorage.getItem('fakeButtonBest') || 0;
+        bestScoreBtn.textContent = `BEST: ${bestScore}`;
+
+        // --- AUDIO ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(freq, dur, type = 'square') {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+            osc.start();
+            osc.stop(audioCtx.currentTime + dur);
+        }
+
+        function clickSound() { playSound(400, 0.05, 'sine'); }
+        function correctSound() { playSound(800, 0.1, 'sine'); setTimeout(() => playSound(1200, 0.1, 'sine'), 50); }
+        function wrongSound() { playSound(100, 0.3, 'sawtooth'); }
+
+        // --- GAME LOGIC ---
+        function showScreen(name) {
+            Object.values(screens).forEach(s => s.classList.add('hidden'));
+            screens[name].classList.remove('hidden');
+        }
+
+        function showHome() { showScreen('home'); }
+
+        function startGame() {
+            score = 0;
+            level = 1;
+            gameActive = true;
+            scoreEl.textContent = 0;
+            levelEl.textContent = 1;
+            showScreen('game');
+            nextLevel();
+        }
+
+        function nextLevel() {
+            if (!gameActive) return;
+            
+            grid.innerHTML = '';
+            const btnCount = Math.min(Math.floor(level / 2) + 3, 9);
+            const realIdx = Math.floor(Math.random() * btnCount);
+            
+            // Adjust grid layout based on count
+            if (btnCount <= 4) grid.style.gridTemplateColumns = 'repeat(2, 1fr)';
+            else grid.style.gridTemplateColumns = 'repeat(3, 1fr)';
+
+            // Time limit decreases as level goes up
+            const roundTime = Math.max(3000 - (level * 100), 800);
+            startTimer(roundTime);
+
+            for (let i = 0; i < btnCount; i++) {
+                const btn = document.createElement('div');
+                btn.className = 'game-btn fade-in';
+                btn.style.animationDelay = `${i * 0.05}s`;
+                
+                if (i === realIdx) {
+                    btn.classList.add('real');
+                    btn.innerHTML = 'REAL';
+                    btn.onclick = (e) => { e.stopPropagation(); winRound(); };
+                } else {
+                    btn.innerHTML = 'FAKE';
+                    // Random behaviors for fakes
+                    const r = Math.random();
+                    if (r < 0.2 && level > 3) btn.classList.add('ghost'); // Disappears on hover
+                    
+                    btn.onclick = (e) => { e.stopPropagation(); loseGame(); };
+                }
+                grid.appendChild(btn);
+            }
+        }
+
+        function startTimer(duration) {
+            if (timerId) clearInterval(timerId);
+            let start = Date.now();
+            timerId = setInterval(() => {
+                const elapsed = Date.now() - start;
+                const percent = 100 - (elapsed / duration * 100);
+                timerBar.style.width = percent + '%';
+                
+                if (percent <= 0) {
+                    clearInterval(timerId);
+                    loseGame();
+                }
+            }, 10);
+        }
+
+        function winRound() {
+            correctSound();
+            score += Math.max(1, Math.floor(timeLeft / 10)); // Bonus for speed
+            scoreEl.textContent = score;
+            level++;
+            levelEl.textContent = level;
+
+            // Anime Effect
+            const slash = document.createElement('div');
+            slash.className = 'slash-effect';
+            slash.textContent = 'SLASH!!';
+            document.body.appendChild(slash);
+            setTimeout(() => slash.remove(), 400);
+
+            document.getElementById('body').classList.add('screen-shake');
+            setTimeout(() => document.getElementById('body').classList.remove('screen-shake'), 200);
+
+            nextLevel();
+        }
+
+        function loseGame() {
+            if (!gameActive) return;
+            gameActive = false;
+            clearInterval(timerId);
+            wrongSound();
+            
+            finalScoreEl.textContent = score;
+            if (score > bestScore) {
+                bestScore = score;
+                localStorage.setItem('fakeButtonBest', bestScore);
+                bestScoreBtn.textContent = `BEST: ${bestScore}`;
+                document.getElementById('new-best-flag').classList.remove('hidden');
+            } else {
+                document.getElementById('new-best-flag').classList.add('hidden');
+            }
+            
+            showScreen('over');
+        }
+
+        // Global click sound
+        window.onclick = () => { if(gameActive) clickSound(); };
+
+        // Keyboard support
+        window.onkeydown = (e) => {
+            if (!gameActive) return;
+            const key = parseInt(e.key);
+            if (key >= 1 && key <= 9) {
+                const btns = document.querySelectorAll('.game-btn');
+                if (btns[key-1]) btns[key-1].click();
+            }
+        };
+
+    </script>
+</body>
+</html>

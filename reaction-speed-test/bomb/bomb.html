@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>BOMB DEFUSE REFLEX | Classic Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #1f1f1f;
+            --bomb-body: #2b2b2b;
+            --wire-red: #ff3333;
+            --wire-blue: #3366ff;
+            --wire-yellow: #ffcc00;
+            --wire-green: #33cc33;
+            --text-light: #f0f0f0;
+            --metal-border: #444444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+            user-select: none;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: fixed;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        /* Industrial Background Overlay */
+        body::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            opacity: 0.3;
+            pointer-events: none;
+            z-index: -1;
+            transition: background-image 0.5s ease-in-out;
+        }
+
+        body.home-bg::before { background-image: url('../img/9.png'); opacity: 0.3; }
+        body.game-bg::before { background-image: url('../img/8.png'); opacity: 1; }
+
+        /* --- SCREENS --- */
+        .screen {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            transition: opacity 0.3s, transform 0.3s;
+            z-index: 50; /* Base layer for screens */
+        }
+
+        .hidden { opacity: 0; pointer-events: none; transform: scale(0.95); }
+
+        /* --- HOME SCREEN --- */
+        h1 {
+            font-size: 3rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 4vh;
+            color: var(--text-light);
+            text-shadow: 2px 2px 0 var(--metal-border);
+            text-align: center;
+        }
+
+        .menu-btns {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        button, .btn-classic {
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            font-weight: 900;
+            background: #3a3a3a;
+            border: 2px solid var(--metal-border);
+            color: var(--text-light);
+            cursor: pointer;
+            border-radius: 4px;
+            transition: 0.2s;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.5);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+        }
+
+        button:active, .btn-classic:active { transform: translateY(2px); box-shadow: 0 0 0 rgba(0,0,0,0.5); }
+
+        .btn-small { padding: 8px 16px; font-size: 0.9rem; }
+        .btn-large { padding: 18px 40px; font-size: 1.4rem; }
+
+        /* --- GAME SCREEN --- */
+        .hud {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background: rgba(0,0,0,0.3);
+            border-bottom: 2px solid var(--metal-border);
+        }
+
+        .stat-label { font-size: 0.7rem; opacity: 0.8; text-transform: uppercase; color: var(--accent); }
+        .stat-value { font-size: 1.2rem; font-weight: 900; font-family: 'Orbitron', monospace; }
+
+        /* --- INDEPENDENT MODULES ASSEMBLY --- */
+        .bomb-assembly {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            max-width: 95vw;
+        }
+
+        .module-top-row {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .module-box {
+            background: var(--bomb-body);
+            border: 5px solid var(--metal-border);
+            border-style: outset;
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.8);
+            position: relative;
+        }
+
+/* Timer - Center */
+.module-timer {
+    width: 34.5vmin; 
+    height: 12.9vmin; 
+    background: #202020;
+    position: absolute;
+    top: 36.2%;
+    left: 50.3%;
+    transform: translate(-50%, -50%);
+}
+
+/* Instructions */
+.module-clue { 
+    width: 27vmin; 
+    height: 14vmin; 
+    background: #222;
+    position: absolute;
+    top: 22.2%;
+    left: 25%;
+}
+
+/* Wires - Bottom Center */
+.module-wires { 
+    width: 35vmin;   
+    height: 20vmin; 
+    background: radial-gradient(circle, #333, #151515);
+    padding: 0 4vmin;
+    position: absolute;
+    bottom: 25.5%;
+    left: 51%;
+    transform: translateX(-50%);
+}
+
+        /* --- DIGITAL TIMER --- */
+        .digital-timer {
+            background: #000;
+            padding: 0.5vmin 2vmin;
+            border: 0.2vmin solid #333;
+            border-radius: 0.4vmin;
+            font-family: 'Orbitron', monospace;
+            color: var(--wire-red);
+            font-size: 2.5vmin;
+            font-weight: 900;
+            text-align: center;
+            min-width: 15vmin;
+            box-shadow: inset 0 0 1vmin rgba(255,0,0,0.2);
+        }
+
+        .digital-timer.stable { color: #00ff00; text-shadow: 0 0 1.5vmin rgba(0,255,0,0.5); }
+        .digital-timer.critical { color: #ff0000; animation: blink 0.5s infinite alternate; }
+
+        @keyframes blink { from { opacity: 1; } to { opacity: 0.4; } }
+
+        /* --- DIAL TIMER (Small integrated version) --- */
+        .dial-timer {
+            width: 80px;
+            height: 80px;
+            position: relative;
+            background: #111;
+            border: 3px solid var(--metal-border);
+            border-radius: 50%;
+        }
+
+        .dial-needle {
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            width: 2px;
+            height: 30px;
+            background: var(--wire-red);
+            transform-origin: bottom center;
+            transform: rotate(0deg);
+            z-index: 5;
+            transition: transform 0.1s linear;
+        }
+
+        .clue-screen {
+            background: #051405; 
+            padding: 1.5vmin 3vmin;
+            border: 0.4vmin solid #000;
+            border-radius: 0.8vmin;
+            font-size: 2.5vmin;
+            font-weight: 900;
+            font-family: 'Orbitron', monospace;
+            text-transform: uppercase;
+            color: #00ff00;
+            letter-spacing: 0.2vmin;
+            text-align: center;
+            box-shadow: inset 0 0 2vmin rgba(0,255,0,0.2);
+            flex: 1;
+        }
+
+        /* Removed .bomb-device */
+
+        .device-panel-top {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            gap: 20px;
+            background: #222;
+            border-bottom: 4px solid #111;
+        }
+
+        .wire-panel {
+            flex: 1;
+            height: 30vh;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 0 40px;
+            background: radial-gradient(circle, #333, #1a1a1a);
+        }
+
+        /* Screws */
+        .bomb-device::before, .bomb-device::after {
+            content: "⊕";
+            position: absolute;
+            top: 10px;
+            font-size: 20px;
+            color: var(--metal-border);
+        }
+        .bomb-device::before { left: 10px; }
+        .bomb-device::after { right: 10px; }
+
+        .wire-slot {
+            height: 80%;
+            width: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        .wire {
+            width: 12px;
+            height: 100%;
+            border-radius: 6px;
+            cursor: pointer;
+            position: relative;
+            box-shadow: 4px 4px 10px rgba(0,0,0,0.5);
+        }
+
+        .wire::before, .wire::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 15px;
+            background: #444;
+            border-radius: 4px;
+        }
+        .wire::before { top: 0; }
+        .wire::after { bottom: 0; }
+
+        .wire.cut {
+            height: 38%;
+            margin-top: auto;
+            opacity: 0.8;
+            pointer-events: none;
+            clip-path: polygon(0 0, 100% 0, 50% 100%);
+            transform: translateY(10px) rotate(2deg); /* Separated */
+        }
+
+        .wire.cut-top {
+            position: absolute;
+            top: 0;
+            height: 38%;
+            opacity: 0.8;
+            pointer-events: none;
+            clip-path: polygon(0 100%, 100% 100%, 50% 0);
+            transform: translateY(-10px) rotate(-2deg); /* Separated */
+        }
+
+        /* Sparks */
+        .spark {
+            position: fixed;
+            width: 4px;
+            height: 4px;
+            background: #ffcc00;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 3000;
+            box-shadow: 0 0 5px #ff6600;
+        }
+
+        /* --- GAME OVER --- */
+        .game-over-screen {
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .explosion-flash {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle, #ff6600, #ff3300, #000);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 60; /* Above normal screens but below game over */
+        }
+
+        .flash-active { animation: boom-flash 0.8s ease-out forwards; }
+
+        @keyframes boom-flash {
+            0% { opacity: 0; transform: scale(0.5); }
+            10% { opacity: 1; transform: scale(1.2); }
+            100% { opacity: 1; transform: scale(1); background: #000; }
+        }
+
+        .boom-text {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            font-size: 8rem;
+            font-weight: 900;
+            color: #ffcc00;
+            text-shadow: 10px 10px 0 #000, 0 0 50px #ff3300;
+            z-index: 70; /* Above flash */
+            opacity: 0;
+            pointer-events: none;
+            text-transform: uppercase;
+            font-style: italic;
+        }
+
+        .boom-active {
+            animation: boom-pop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes boom-pop {
+            0% { transform: translate(-50%, -50%) scale(0) rotate(-10deg); opacity: 0; }
+            20% { opacity: 1; transform: translate(-50%, -50%) scale(1.5) rotate(5deg); }
+            100% { opacity: 1; transform: translate(-50%, -50%) scale(1.2) rotate(0deg); }
+        }
+
+        .cracked-screen {
+            position: absolute;
+            inset: 0;
+            background-image: url('https://www.transparenttextures.com/patterns/cracked-glass-dark.png');
+            opacity: 0;
+            z-index: 65; /* Above flash but below text */
+            pointer-events: none;
+        }
+
+        .crack-active { opacity: 0.8; }
+
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            text-decoration: none;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            color: var(--text-light);
+            font-weight: 700;
+            z-index: 100;
+        }
+
+        .shake { animation: intense-shake 0.4s infinite; }
+        .correct-shake { animation: quick-shake 0.2s linear 2; }
+
+        @keyframes quick-shake {
+            0% { transform: translate(0,0); }
+            50% { transform: translate(5px, 5px); }
+            100% { transform: translate(0,0); }
+        }
+
+        @keyframes intense-shake {
+            0% { transform: translate(0,0) rotate(0); }
+            10% { transform: translate(-10px, -10px) rotate(-1deg); }
+            20% { transform: translate(10px, 10px) rotate(1deg); }
+            30% { transform: translate(-10px, 10px) rotate(-1deg); }
+            40% { transform: translate(10px, -10px) rotate(1deg); }
+            50% { transform: translate(-10px, 0); }
+            60% { transform: translate(10px, 0); }
+            100% { transform: translate(0,0) rotate(0); }
+        }
+    </style>
+</head>
+<body class="home-bg">
+
+    <!-- Back Button (Always visible during game/home) -->
+    <a href="../../index.html" class="btn-classic btn-small" id="global-back-btn" 
+       style="position: fixed; top: 20px; left: 20px; z-index: 9999; opacity: 1;">← BACK</a>
+
+    <!-- In-Game Back (Functional) -->
+    <button onclick="exitToMenu()" class="btn-classic btn-small hidden" id="ingame-back-btn" 
+       style="position: fixed; top: 20px; left: 20px; z-index: 9999;">← BACK</button>
+
+    <div id="flash" class="explosion-flash"></div>
+    <div id="boom" class="boom-text">BOOM!!</div>
+    <div id="cracked" class="cracked-screen"></div>
+
+    <!-- HOME SCREEN -->
+    <div id="home-screen" class="screen">
+        <h1>BOMB DEFUSE<br>REFLEX</h1>
+        <div class="menu-btns">
+            <button onclick="startGame()" class="btn-large">INITIATE DEFUSAL</button>
+            <button id="best-score-btn">BEST SCORE: 0</button>
+        </div>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div id="game-screen" class="screen hidden">
+        <div class="bomb-assembly">
+            <div class="module-top-row">
+                <!-- BOX 2: INSTRUCTIONS (Left) -->
+                <div class="module-box module-clue">
+                    <div id="clue" class="clue-screen">INITIALIZING...</div>
+                </div>
+
+                <!-- BOX 1: TIMER (Right) -->
+                <div class="module-box module-timer">
+                    <div class="dial-timer" style="width: 50px; height: 50px;">
+                        <div class="dial-needle" id="timer-needle" style="height: 20px;"></div>
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 4px; height: 4px; background: #555; border-radius: 50%; z-index: 10;"></div>
+                    </div>
+                    
+                    <div id="digital-timer" class="digital-timer stable">00.00</div>
+                    
+                    <div style="position: absolute; bottom: 3px; right: 10px; font-size: 8px; color: #555;">
+                        RD: <span id="score" style="color: #aaa;">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BOX 3: WIRES -->
+            <div id="device" class="module-box module-wires">
+                <!-- Wires dynamically generated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- GAME OVER SCREEN (Highest z-index for absolute visibility) -->
+    <div id="game-over-screen" class="screen hidden" style="background: rgba(0,0,0,0.9); z-index: 2000;">
+        <h1 style="color: var(--wire-red); font-size: 4.5rem;">DETONATED</h1>
+        <div class="stat-value" id="final-score" style="margin-bottom: 5vh; font-size: 2.5rem;">ROUNDS CLEARED: 0</div>
+        <div class="menu-btns" style="max-width: 400px;">
+            <button onclick="startGame()" class="btn-large" style="background: var(--wire-green); color: #000; border-color: #000;">REPLAY</button>
+            <button onclick="exitToMenu()">MAIN MENU</button>
+        </div>
+    </div>
+
+    <script>
+        // --- PREVENT BROWSER ZOOM ---
+        document.addEventListener('keydown', function (e) {
+            if (e.ctrlKey && (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '0')) {
+                e.preventDefault();
+            }
+        });
+        document.addEventListener('wheel', function (e) {
+            if (e.ctrlKey) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+        
+        const screens = {
+            home: document.getElementById('home-screen'),
+            game: document.getElementById('game-screen'),
+            over: document.getElementById('game-over-screen')
+        };
+
+        const device = document.getElementById('device');
+        const clueEl = document.getElementById('clue');
+        const scoreEl = document.getElementById('score');
+        const timerNeedle = document.getElementById('timer-needle');
+        const digitalTimer = document.getElementById('digital-timer');
+        const bestScoreBtn = document.getElementById('best-score-btn');
+        const finalScoreEl = document.getElementById('final-score');
+        const flashEl = document.getElementById('flash');
+
+        let score = 0;
+        let gameActive = false;
+        let currentCorrectWire = -1;
+        let timerId = null;
+        let tickId = null;
+        let bestScore = localStorage.getItem('bombDefuseBest') || 0;
+        bestScoreBtn.textContent = `BEST SCORE: ${bestScore}`;
+
+        const wireColors = ['#ff3333', '#3366ff', '#ffcc00', '#33cc33'];
+        const colorNames = ['RED', 'BLUE', 'YELLOW', 'GREEN'];
+
+        // --- AUDIO ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(freq, dur, type = 'square', drift = 0) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            if(drift) osc.frequency.exponentialRampToValueAtTime(freq + drift, audioCtx.currentTime + dur);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+            osc.start();
+            osc.stop(audioCtx.currentTime + dur);
+        }
+
+        function playTick() { playSound(1000, 0.05, 'sine'); }
+        function playSnip() { playSound(400, 0.05, 'sawtooth', -200); }
+        function playCorrect() { playSound(600, 0.1, 'sine'); setTimeout(() => playSound(900, 0.1, 'sine'), 50); }
+        function playCrackle() { playSound(800 + Math.random() * 400, 0.03, 'square'); }
+        function playExplosion() { 
+            playSound(60, 0.5, 'sawtooth'); 
+            playSound(40, 0.8, 'sawtooth');
+        }
+
+        // --- SPARK SYSTEM ---
+        function createSparks(x, y, count = 15) {
+            for (let i = 0; i < count; i++) {
+                const spark = document.createElement('div');
+                spark.className = 'spark';
+                spark.style.left = x + 'px';
+                spark.style.top = y + 'px';
+                document.body.appendChild(spark);
+
+                const angle = Math.random() * Math.PI * 2;
+                const dist = Math.random() * 80 + 20;
+                const speed = Math.random() * 0.5 + 0.3;
+
+                spark.animate([
+                    { transform: 'translate(0,0)', opacity: 1 },
+                    { transform: `translate(${Math.cos(angle) * dist}px, ${Math.sin(angle) * dist}px)`, opacity: 0 }
+                ], {
+                    duration: speed * 1000,
+                    easing: 'cubic-bezier(0, .9, .57, 1)'
+                }).onfinish = () => spark.remove();
+                
+                if (i % 3 === 0) playCrackle();
+            }
+        }
+
+        function showScreen(name) {
+            Object.values(screens).forEach(s => s.classList.add('hidden'));
+            screens[name].classList.remove('hidden');
+            
+            // Background Image Swapping
+            if (name === 'home') {
+                document.body.classList.add('home-bg');
+                document.body.classList.remove('game-bg');
+            } else {
+                document.body.classList.add('game-bg');
+                document.body.classList.remove('home-bg');
+            }
+
+            // Handle back buttons visibility:
+            // Home button visible only on Home screen
+            document.getElementById('global-back-btn').classList.toggle('hidden', name !== 'home');
+            // In-game back button visible on Game AND Game Over screen for accessibility
+            document.getElementById('ingame-back-btn').classList.toggle('hidden', name === 'home');
+        }
+
+        function exitToMenu() {
+            gameActive = false;
+            clearInterval(timerId);
+            clearInterval(tickId);
+            showScreen('home');
+        }
+
+        function startGame() {
+            score = 0;
+            gameActive = true;
+            scoreEl.textContent = 0;
+            
+            // Clear previous game over artifacts
+            document.getElementById('cracked').classList.remove('crack-active');
+            document.getElementById('boom').classList.remove('boom-active');
+            flashEl.classList.remove('flash-active');
+            
+            showScreen('game');
+            nextRound();
+        }
+
+        function nextRound() {
+            if (!gameActive) return;
+            
+            device.innerHTML = '';
+            const wireCount = Math.min(Math.floor(score / 5) + 3, 6);
+            let colorsInRound = [];
+            
+            for (let i = 0; i < wireCount; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'wire-slot';
+                
+                const colorIdx = Math.floor(Math.random() * 4);
+                colorsInRound.push(colorIdx);
+                
+                const wire = document.createElement('div');
+                wire.className = 'wire';
+                wire.style.backgroundColor = wireColors[colorIdx];
+                wire.onclick = () => cutWire(i);
+                
+                slot.appendChild(wire);
+                device.appendChild(slot);
+            }
+
+            generateClue(colorsInRound);
+            startTimer();
+        }
+
+        function generateClue(colors) {
+            const types = ['color', 'pos', 'last', 'not'];
+            const type = types[Math.floor(Math.random() * (score > 5 ? 4 : 2))]; // Unlock more types later
+            
+            switch(type) {
+                case 'color':
+                    const targetColor = colors[Math.floor(Math.random() * colors.length)];
+                    currentCorrectWire = colors.indexOf(targetColor);
+                    clueEl.textContent = `CUT THE ${colorNames[targetColor]} WIRE`;
+                    break;
+                case 'pos':
+                    currentCorrectWire = Math.floor(Math.random() * colors.length);
+                    clueEl.textContent = `CUT WIRE AT POSITION ${currentCorrectWire + 1}`;
+                    break;
+                case 'last':
+                    currentCorrectWire = colors.length - 1;
+                    clueEl.textContent = `CUT THE LAST WIRE`;
+                    break;
+                case 'not':
+                    const avoidColor = colors[Math.floor(Math.random() * colors.length)];
+                    let possible = [];
+                    colors.forEach((c, idx) => { if (c !== avoidColor) possible.push(idx); });
+                    if(possible.length === 0) return generateClue(colors); // Fallback
+                    currentCorrectWire = possible[Math.floor(Math.random() * possible.length)];
+                    clueEl.textContent = `DO NOT CUT ${colorNames[avoidColor]}`;
+                    break;
+            }
+        }
+
+        function startTimer() {
+            if (timerId) clearInterval(timerId);
+            if (tickId) clearInterval(tickId);
+            
+            // Progressive duration: Starts at 20s, decreases by 1s each round (floor at 5s)
+            const duration = Math.max(10000 - (score * 1000), 5000);
+            let start = Date.now();
+            
+            timerId = setInterval(() => {
+                const elapsed = Date.now() - start;
+                const remainingRaw = Math.max(0, duration - elapsed);
+                const percent = (remainingRaw / duration) * 100;
+                
+                // 1. Digital Display Update (Format: MM:SS.ms)
+                const mins = Math.floor(remainingRaw / 60000);
+                const secs = Math.floor((remainingRaw % 60000) / 1000);
+                const ms = Math.floor((remainingRaw % 1000) / 10);
+                digitalTimer.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
+
+                // 2. Analog Dial Update
+                const rotation = (1 - percent/100) * 360;
+                timerNeedle.style.transform = `rotate(${rotation}deg)`;
+                
+                if (percent <= 0) explode();
+                if (percent < 30) {
+                    digitalTimer.className = 'digital-timer critical';
+                    timerNeedle.style.background = '#ff0000';
+                    document.getElementById('status').textContent = 'CRITICAL';
+                    document.getElementById('status').style.color = '#ff0000';
+                } else {
+                    digitalTimer.className = 'digital-timer stable';
+                    timerNeedle.style.background = 'var(--wire-red)';
+                    document.getElementById('status').textContent = 'STABLE';
+                    document.getElementById('status').style.color = '#00ff00';
+                 }
+            }, 10);
+
+            // Ticking sound
+            let tickCount = 0;
+            tickId = setInterval(() => {
+                playTick();
+                tickCount++;
+            }, 500);
+        }
+
+        function cutWire(idx, e) {
+            if (!gameActive) return;
+            
+            const wires = document.querySelectorAll('.wire');
+            const wire = wires[idx];
+            if (wire.classList.contains('cut')) return;
+
+            // Positioning sparks
+            const rect = wire.getBoundingClientRect();
+            const sparkX = rect.left + rect.width / 2;
+            const sparkY = rect.top + rect.height / 2;
+            
+            // 1. Highlight
+            wire.style.filter = 'brightness(2) contrast(1.2)';
+            
+            // 2. Delay for cut feel
+            setTimeout(() => {
+                // 3. Cut Animation
+                wire.classList.add('cut');
+                const topPart = document.createElement('div');
+                topPart.className = 'wire cut-top';
+                topPart.style.backgroundColor = wire.style.backgroundColor;
+                wire.parentElement.appendChild(topPart);
+                
+                playSnip();
+
+                // 4. Spark Effect
+                const isCorrect = (idx === currentCorrectWire);
+                createSparks(sparkX, sparkY, isCorrect ? 15 : 40);
+
+                // 5. Result
+                if (isCorrect) {
+                    document.body.classList.add('correct-shake');
+                    setTimeout(() => document.body.classList.remove('correct-shake'), 400);
+
+                    setTimeout(() => {
+                        playCorrect();
+                        score++;
+                        scoreEl.textContent = score;
+                        nextRound();
+                    }, 500);
+                } else {
+                    setTimeout(() => explode(), 300);
+                }
+            }, 100);
+        }
+
+        function explode() {
+            if (!gameActive) return;
+            gameActive = false;
+            clearInterval(timerId);
+            clearInterval(tickId);
+            
+            playExplosion();
+            flashEl.classList.add('flash-active');
+            document.getElementById('boom').classList.add('boom-active');
+            document.getElementById('cracked').classList.add('crack-active');
+            document.body.classList.add('shake');
+            
+            setTimeout(() => {
+                document.body.classList.remove('shake');
+                finalScoreEl.textContent = `ROUNDS CLEARED: ${score}`;
+                
+                if (score > bestScore) {
+                    bestScore = score;
+                    localStorage.setItem('bombDefuseBest', bestScore);
+                    bestScoreBtn.textContent = `BEST SCORE: ${bestScore}`;
+                }
+                showScreen('over');
+            }, 800);
+        }
+
+        // Initialize on load
+        showScreen('home');
+    </script>
+</body>
+</html>
